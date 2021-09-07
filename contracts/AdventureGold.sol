@@ -7,21 +7,21 @@ import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 
-/// @title Adventure Gold for Loot holders!
+/// @title Seconds for Loot holders!
 /// @author Will Papper <https://twitter.com/WillPapper>
-/// @notice This contract mints Adventure Gold for Loot holders and provides
+/// @notice This contract mints Seconds for Loot holders and provides
 /// administrative functions to the Loot DAO. It allows:
-/// * Loot holders to claim Adventure Gold
-/// * A DAO to set seasons for new opportunities to claim Adventure Gold
-/// * A DAO to mint Adventure Gold for use within the Loot ecosystem
+/// * Loot holders to claim Seconds
+/// * A DAO to set seasons for new opportunities to claim Seconds
+/// * A DAO to mint Seconds for use within the Loot ecosystem
 /// @custom:unaudited This contract has not been audited. Use at your own risk.
-contract AdventureGold is Context, Ownable, ERC20 {
+contract Seconds is Context, Ownable, ERC20 {
     // Loot contract is available at https://etherscan.io/address/0xff9c1b15b16263c61d017ee9f65c50e4ae0113d7
     address public lootContractAddress =
         0xFF9C1b15B16263C61d017ee9F65C50e4AE0113D7;
     IERC721Enumerable public lootContract;
 
-    // Give out 10,000 Adventure Gold for every Loot Bag that a user holds
+    // Give out 10,000 Seconds for every Loot Bag that a user holds
     uint256 public adventureGoldPerTokenId = 10000 * (10**decimals());
 
     // tokenIdStart of 1 is based on the following lines in the Loot contract:
@@ -51,7 +51,7 @@ contract AdventureGold is Context, Ownable, ERC20 {
     // claimedForSeason[season][tokenId][claimed]
     mapping(uint256 => mapping(uint256 => bool)) public seasonClaimedByTokenId;
 
-    constructor() Ownable() ERC20("Adventure Gold", "AGLD") {
+    constructor() Ownable() ERC20("Seconds", "SEC") {
         // Transfer ownership to the Loot DAO
         // Ownable by OpenZeppelin automatically sets owner to msg.sender, but
         // we're going to be using a separate wallet for deployment
@@ -59,7 +59,7 @@ contract AdventureGold is Context, Ownable, ERC20 {
         lootContract = IERC721Enumerable(lootContractAddress);
     }
 
-    /// @notice Claim Adventure Gold for a given Loot ID
+    /// @notice Claim Seconds for a given Loot ID
     /// @param tokenId The tokenId of the Loot NFT
     function claimById(uint256 tokenId) external {
         // Follow the Checks-Effects-Interactions pattern to prevent reentrancy
@@ -78,7 +78,7 @@ contract AdventureGold is Context, Ownable, ERC20 {
         _claim(tokenId, _msgSender());
     }
 
-    /// @notice Claim Adventure Gold for all tokens owned by the sender
+    /// @notice Claim Seconds for all tokens owned by the sender
     /// @notice This function will run out of gas if you have too much loot! If
     /// this is a concern, you should use claimRangeForOwner and claim Adventure
     /// Gold in batches.
@@ -99,7 +99,7 @@ contract AdventureGold is Context, Ownable, ERC20 {
         }
     }
 
-    /// @notice Claim Adventure Gold for all tokens owned by the sender within a
+    /// @notice Claim Seconds for all tokens owned by the sender within a
     /// given range
     /// @notice This function is useful if you own too much Loot to claim all at
     /// once or if you want to leave some Loot unclaimed. If you leave Loot
@@ -140,7 +140,7 @@ contract AdventureGold is Context, Ownable, ERC20 {
             "TOKEN_ID_OUT_OF_RANGE"
         );
 
-        // Check that Adventure Gold have not already been claimed this season
+        // Check that Seconds have not already been claimed this season
         // for a given tokenId
         require(
             !seasonClaimedByTokenId[season][tokenId],
@@ -149,13 +149,13 @@ contract AdventureGold is Context, Ownable, ERC20 {
 
         // Effects
 
-        // Mark that Adventure Gold has been claimed for this season for the
+        // Mark that Seconds has been claimed for this season for the
         // given tokenId
         seasonClaimedByTokenId[season][tokenId] = true;
 
         // Interactions
 
-        // Send Adventure Gold to the owner of the token ID
+        // Send Seconds to the owner of the token ID
         _mint(tokenOwner, adventureGoldPerTokenId);
     }
 
@@ -193,28 +193,28 @@ contract AdventureGold is Context, Ownable, ERC20 {
         tokenIdEnd = tokenIdEnd_;
     }
 
-    /// @notice Allows the DAO to set a season for new Adventure Gold claims
+    /// @notice Allows the DAO to set a season for new Seconds claims
     /// @param season_ The season to use for claiming Loot
     function daoSetSeason(uint256 season_) public onlyOwner {
         season = season_;
     }
 
-    /// @notice Allows the DAO to set the amount of Adventure Gold that is
+    /// @notice Allows the DAO to set the amount of Seconds that is
     /// claimed per token ID
     /// @param adventureGoldDisplayValue The amount of Loot a user can claim.
     /// This should be input as the display value, not in raw decimals. If you
     /// want to mint 100 Loot, you should enter "100" rather than the value of
     /// 100 * 10^18.
-    function daoSetAdventureGoldPerTokenId(uint256 adventureGoldDisplayValue)
+    function daoSetSecondsPerTokenId(uint256 adventureGoldDisplayValue)
         public
         onlyOwner
     {
         adventureGoldPerTokenId = adventureGoldDisplayValue * (10**decimals());
     }
 
-    /// @notice Allows the DAO to set the season and Adventure Gold per token ID
+    /// @notice Allows the DAO to set the season and Seconds per token ID
     /// in one transaction. This ensures that there is not a gap where a user
-    /// can claim more Adventure Gold than others
+    /// can claim more Seconds than others
     /// @param season_ The season to use for claiming loot
     /// @param adventureGoldDisplayValue The amount of Loot a user can claim.
     /// This should be input as the display value, not in raw decimals. If you
@@ -225,11 +225,11 @@ contract AdventureGold is Context, Ownable, ERC20 {
     /// however, to avoid repeating code. This function is so rarely used that
     /// it's not worth moving these values into their own internal function to
     /// skip the gas used on the modifier check.
-    function daoSetSeasonAndAdventureGoldPerTokenID(
+    function daoSetSeasonAndSecondsPerTokenID(
         uint256 season_,
         uint256 adventureGoldDisplayValue
     ) external onlyOwner {
         daoSetSeason(season_);
-        daoSetAdventureGoldPerTokenId(adventureGoldDisplayValue);
+        daoSetSecondsPerTokenId(adventureGoldDisplayValue);
     }
 }
