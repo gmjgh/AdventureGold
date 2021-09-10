@@ -135,9 +135,9 @@ interface IERC721 is IERC165 {
      * - `tokenId` must exist.
      */
     function getApproved(uint256 tokenId)
-        external
-        view
-        returns (address operator);
+    external
+    view
+    returns (address operator);
 
     /**
      * @dev Approve or remove `operator` as an operator for the caller.
@@ -157,9 +157,9 @@ interface IERC721 is IERC165 {
      * See {setApprovalForAll}
      */
     function isApprovedForAll(address owner, address operator)
-        external
-        view
-        returns (bool);
+    external
+    view
+    returns (bool);
 
     /**
      * @dev Safely transfers `tokenId` token from `from` to `to`.
@@ -233,9 +233,9 @@ library Strings {
      * @dev Converts a `uint256` to its ASCII `string` hexadecimal representation with fixed length.
      */
     function toHexString(uint256 value, uint256 length)
-        internal
-        pure
-        returns (string memory)
+    internal
+    pure
+    returns (string memory)
     {
         bytes memory buffer = new bytes(2 * length + 2);
         buffer[0] = "0";
@@ -499,7 +499,7 @@ library Address {
             "Address: insufficient balance"
         );
 
-        (bool success, ) = recipient.call{ value: amount }("");
+        (bool success,) = recipient.call{ value : amount}("");
         require(
             success,
             "Address: unable to send value, recipient may have reverted"
@@ -525,8 +525,8 @@ library Address {
      * _Available since v3.1._
      */
     function functionCall(address target, bytes memory data)
-        internal
-        returns (bytes memory)
+    internal
+    returns (bytes memory)
     {
         return functionCall(target, data, "Address: low-level call failed");
     }
@@ -562,12 +562,12 @@ library Address {
         uint256 value
     ) internal returns (bytes memory) {
         return
-            functionCallWithValue(
-                target,
-                data,
-                value,
-                "Address: low-level call with value failed"
-            );
+        functionCallWithValue(
+            target,
+            data,
+            value,
+            "Address: low-level call with value failed"
+        );
     }
 
     /**
@@ -588,8 +588,8 @@ library Address {
         );
         require(isContract(target), "Address: call to non-contract");
 
-        (bool success, bytes memory returndata) = target.call{ value: value }(
-            data
+        (bool success, bytes memory returndata) = target.call(value: value)(
+        data
         );
         return _verifyCallResult(success, returndata, errorMessage);
     }
@@ -601,16 +601,16 @@ library Address {
      * _Available since v3.3._
      */
     function functionStaticCall(address target, bytes memory data)
-        internal
-        view
-        returns (bytes memory)
+    internal
+    view
+    returns (bytes memory)
     {
         return
-            functionStaticCall(
-                target,
-                data,
-                "Address: low-level static call failed"
-            );
+        functionStaticCall(
+            target,
+            data,
+            "Address: low-level static call failed"
+        );
     }
 
     /**
@@ -637,15 +637,15 @@ library Address {
      * _Available since v3.4._
      */
     function functionDelegateCall(address target, bytes memory data)
-        internal
-        returns (bytes memory)
+    internal
+    returns (bytes memory)
     {
         return
-            functionDelegateCall(
-                target,
-                data,
-                "Address: low-level delegate call failed"
-            );
+        functionDelegateCall(
+            target,
+            data,
+            "Address: low-level delegate call failed"
+        );
     }
 
     /**
@@ -707,11 +707,11 @@ abstract contract ERC165 is IERC165 {
      * @dev See {IERC165-supportsInterface}.
      */
     function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        virtual
-        override
-        returns (bool)
+    public
+    view
+    virtual
+    override
+    returns (bool)
     {
         return interfaceId == type(IERC165).interfaceId;
     }
@@ -756,27 +756,27 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
      * @dev See {IERC165-supportsInterface}.
      */
     function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        virtual
-        override(ERC165, IERC165)
-        returns (bool)
+    public
+    view
+    virtual
+    override(ERC165, IERC165)
+    returns (bool)
     {
         return
-            interfaceId == type(IERC721).interfaceId ||
-            interfaceId == type(IERC721Metadata).interfaceId ||
-            super.supportsInterface(interfaceId);
+        interfaceId == type(IERC721).interfaceId ||
+        interfaceId == type(IERC721Metadata).interfaceId ||
+        super.supportsInterface(interfaceId);
     }
 
     /**
      * @dev See {IERC721-balanceOf}.
      */
     function balanceOf(address owner)
-        public
-        view
-        virtual
-        override
-        returns (uint256)
+    public
+    view
+    virtual
+    override
+    returns (uint256)
     {
         require(
             owner != address(0),
@@ -789,11 +789,11 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
      * @dev See {IERC721-ownerOf}.
      */
     function ownerOf(uint256 tokenId)
-        public
-        view
-        virtual
-        override
-        returns (address)
+    public
+    view
+    virtual
+    override
+    returns (address)
     {
         address owner = _owners[tokenId];
         require(
@@ -821,11 +821,11 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
      * @dev See {IERC721Metadata-tokenURI}.
      */
     function tokenURI(uint256 tokenId)
-        public
-        view
-        virtual
-        override
-        returns (string memory)
+    public
+    view
+    virtual
+    override
+    returns (string memory)
     {
         require(
             _exists(tokenId),
@@ -834,9 +834,9 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
 
         string memory baseURI = _baseURI();
         return
-            bytes(baseURI).length > 0
-                ? string(abi.encodePacked(baseURI, tokenId.toString()))
-                : "";
+        bytes(baseURI).length > 0
+        ? string(abi.encodePacked(baseURI, tokenId.toString()))
+        : "";
     }
 
     /**
@@ -867,11 +867,11 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
      * @dev See {IERC721-getApproved}.
      */
     function getApproved(uint256 tokenId)
-        public
-        view
-        virtual
-        override
-        returns (address)
+    public
+    view
+    virtual
+    override
+    returns (address)
     {
         require(
             _exists(tokenId),
@@ -885,9 +885,9 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
      * @dev See {IERC721-setApprovalForAll}.
      */
     function setApprovalForAll(address operator, bool approved)
-        public
-        virtual
-        override
+    public
+    virtual
+    override
     {
         require(operator != _msgSender(), "ERC721: approve to caller");
 
@@ -899,11 +899,11 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
      * @dev See {IERC721-isApprovedForAll}.
      */
     function isApprovedForAll(address owner, address operator)
-        public
-        view
-        virtual
-        override
-        returns (bool)
+    public
+    view
+    virtual
+    override
+    returns (bool)
     {
         return _operatorApprovals[owner][operator];
     }
@@ -1003,10 +1003,10 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
      * - `tokenId` must exist.
      */
     function _isApprovedOrOwner(address spender, uint256 tokenId)
-        internal
-        view
-        virtual
-        returns (bool)
+    internal
+    view
+    virtual
+    returns (bool)
     {
         require(
             _exists(tokenId),
@@ -1014,8 +1014,8 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
         );
         address owner = ERC721.ownerOf(tokenId);
         return (spender == owner ||
-            getApproved(tokenId) == spender ||
-            isApprovedForAll(owner, spender));
+        getApproved(tokenId) == spender ||
+        isApprovedForAll(owner, spender));
     }
 
     /**
@@ -1157,26 +1157,26 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
         bytes memory _data
     ) private returns (bool) {
         if (to.isContract()) {
-            try
-                IERC721Receiver(to).onERC721Received(
-                    _msgSender(),
-                    from,
-                    tokenId,
-                    _data
-                )
-            returns (bytes4 retval) {
-                return retval == IERC721Receiver(to).onERC721Received.selector;
-            } catch (bytes memory reason) {
-                if (reason.length == 0) {
-                    revert(
-                        "ERC721: transfer to non ERC721Receiver implementer"
-                    );
-                } else {
-                    assembly {
-                        revert(add(32, reason), mload(reason))
-                    }
-                }
-            }
+        try
+        IERC721Receiver(to).onERC721Received(
+        _msgSender(),
+        from,
+        tokenId,
+        _data
+        )
+        returns (bytes4 retval) {
+        return retval == IERC721Receiver(to).onERC721Received.selector;
+        } catch (bytes memory reason) {
+        if (reason.length == 0) {
+        revert(
+        "ERC721: transfer to non ERC721Receiver implementer"
+        );
+        } else {
+        assembly {
+        revert(add(32, reason), mload(reason))
+        }
+        }
+        }
         } else {
             return true;
         }
@@ -1218,9 +1218,9 @@ interface IERC721Enumerable is IERC721 {
      * Use along with {balanceOf} to enumerate all of ``owner``'s tokens.
      */
     function tokenOfOwnerByIndex(address owner, uint256 index)
-        external
-        view
-        returns (uint256 tokenId);
+    external
+    view
+    returns (uint256 tokenId);
 
     /**
      * @dev Returns a token ID at a given `index` of all the tokens stored by the contract.
@@ -1251,26 +1251,26 @@ abstract contract ERC721Enumerable is ERC721, IERC721Enumerable {
      * @dev See {IERC165-supportsInterface}.
      */
     function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        virtual
-        override(IERC165, ERC721)
-        returns (bool)
+    public
+    view
+    virtual
+    override(IERC165, ERC721)
+    returns (bool)
     {
         return
-            interfaceId == type(IERC721Enumerable).interfaceId ||
-            super.supportsInterface(interfaceId);
+        interfaceId == type(IERC721Enumerable).interfaceId ||
+        super.supportsInterface(interfaceId);
     }
 
     /**
      * @dev See {IERC721Enumerable-tokenOfOwnerByIndex}.
      */
     function tokenOfOwnerByIndex(address owner, uint256 index)
-        public
-        view
-        virtual
-        override
-        returns (uint256)
+    public
+    view
+    virtual
+    override
+    returns (uint256)
     {
         require(
             index < ERC721.balanceOf(owner),
@@ -1290,11 +1290,11 @@ abstract contract ERC721Enumerable is ERC721, IERC721Enumerable {
      * @dev See {IERC721Enumerable-tokenByIndex}.
      */
     function tokenByIndex(uint256 index)
-        public
-        view
-        virtual
-        override
-        returns (uint256)
+    public
+    view
+    virtual
+    override
+    returns (uint256)
     {
         require(
             index < ERC721Enumerable.totalSupply(),
@@ -1366,7 +1366,7 @@ abstract contract ERC721Enumerable is ERC721, IERC721Enumerable {
      * @param tokenId uint256 ID of the token to be removed from the tokens list of the given address
      */
     function _removeTokenFromOwnerEnumeration(address from, uint256 tokenId)
-        private
+    private
     {
         // To prevent a gap in from's tokens array, we store the last token in the index of the token to delete, and
         // then delete the last slot (swap and pop).
@@ -1378,8 +1378,10 @@ abstract contract ERC721Enumerable is ERC721, IERC721Enumerable {
         if (tokenIndex != lastTokenIndex) {
             uint256 lastTokenId = _ownedTokens[from][lastTokenIndex];
 
-            _ownedTokens[from][tokenIndex] = lastTokenId; // Move the last token to the slot of the to-delete token
-            _ownedTokensIndex[lastTokenId] = tokenIndex; // Update the moved token's index
+            _ownedTokens[from][tokenIndex] = lastTokenId;
+            // Move the last token to the slot of the to-delete token
+            _ownedTokensIndex[lastTokenId] = tokenIndex;
+            // Update the moved token's index
         }
 
         // This also deletes the contents at the last position of the array
@@ -1404,8 +1406,10 @@ abstract contract ERC721Enumerable is ERC721, IERC721Enumerable {
         // an 'if' statement (like in _removeTokenFromOwnerEnumeration)
         uint256 lastTokenId = _allTokens[lastTokenIndex];
 
-        _allTokens[tokenIndex] = lastTokenId; // Move the last token to the slot of the to-delete token
-        _allTokensIndex[lastTokenId] = tokenIndex; // Update the moved token's index
+        _allTokens[tokenIndex] = lastTokenId;
+        // Move the last token to the slot of the to-delete token
+        _allTokensIndex[lastTokenId] = tokenIndex;
+        // Update the moved token's index
 
         // This also deletes the contents at the last position of the array
         delete _allTokensIndex[tokenId];
@@ -1413,18 +1417,19 @@ abstract contract ERC721Enumerable is ERC721, IERC721Enumerable {
     }
 }
 
-contract Days is ERC721Enumerable, ReentrancyGuard, Ownable {
+contract EpochDay is ERC721Enumerable, ReentrancyGuard, Ownable {
 
     int constant OFFSET19700101 = 2440588;
+    int constant SECONDS_PER_DAY = 86400;
+    int constant OWNER_FAVOURITE_NUMBER = 16;
 
-    uint256 private _startTimestamp = 0;
-    uint256 private _endTimestamp = 3155760000;
-    uint256 private _oneDayInSeconds = 86400;
-    uint256 private _maxDaysCount = 36525;
+    uint256 public epochDaysCount = 36525;
+    uint256 public epoch = 1;
 
-    function random(string memory input) internal pure returns (uint256) {
-        return uint256(keccak256(abi.encodePacked(input)));
-    }
+    uint256 public chunksCount = 25;
+    uint256 public chunkSize = _maxDaysCount / _chunksCount;
+
+    int private _quarterIndex = 0;
 
     function _daysToDate(uint _days) internal pure returns (uint year, uint month, uint day) {
         int __days = int(_days);
@@ -1445,120 +1450,47 @@ contract Days is ERC721Enumerable, ReentrancyGuard, Ownable {
         day = uint(_day);
     }
 
-    function getWeapon(uint256 tokenId) public view returns (string memory) {
-        return pluck(tokenId, "WEAPON", weapons);
-    }
-
-    function getChest(uint256 tokenId) public view returns (string memory) {
-        return pluck(tokenId, "CHEST", chestArmor);
-    }
-
-    function getHead(uint256 tokenId) public view returns (string memory) {
-        return pluck(tokenId, "HEAD", headArmor);
-    }
-
-    function getWaist(uint256 tokenId) public view returns (string memory) {
-        return pluck(tokenId, "WAIST", waistArmor);
-    }
-
-    function getFoot(uint256 tokenId) public view returns (string memory) {
-        return pluck(tokenId, "FOOT", footArmor);
-    }
-
-    function getHand(uint256 tokenId) public view returns (string memory) {
-        return pluck(tokenId, "HAND", handArmor);
-    }
-
-    function getNeck(uint256 tokenId) public view returns (string memory) {
-        return pluck(tokenId, "NECK", necklaces);
-    }
-
-    function getRing(uint256 tokenId) public view returns (string memory) {
-        return pluck(tokenId, "RING", rings);
-    }
-
-    function pluck(
-        uint256 tokenId,
-        string[] memory sourceArray
+    function assignDate(
+        uint256 tokenId
     ) internal view returns (uint256) {
-        uint256 rand = random(
-            string(abi.encodePacked("Date", toString(tokenId)))
-        );
-        uint256 dayNumber = uint256(rand % _maxDaysCount);
-        uint256 output = uint256(dayNumber * _oneDayInSeconds);
-        uint256 greatness = rand % 21;
-        if (greatness > 14) {
-            output = string(
-                abi.encodePacked(output, " ", suffixes[rand % suffixes.length])
-            );
+        int trailingNumber = int(i % chunksCount);
+        uint256 output = uint256(chunkSize * trailingNumber + quarterIndex);
+        if (trailingNumber == 0) {
+            _quarterIndex = _quarterIndex + 1;
         }
-        if (greatness >= 19) {
-            string[2] memory name;
-            name[0] = namePrefixes[rand % namePrefixes.length];
-            name[1] = nameSuffixes[rand % nameSuffixes.length];
-            if (greatness == 19) {
-                output = string(
-                    abi.encodePacked('"', name[0], " ", name[1], '" ', output)
-                );
-            } else {
-                output = string(
-                    abi.encodePacked(
-                        '"',
-                        name[0],
-                        " ",
-                        name[1],
-                        '" ',
-                        output,
-                        " +1"
-                    )
-                );
-            }
-        }
+
         return output;
     }
 
     function tokenURI(uint256 tokenId)
-        public
-        view
-        override
-        returns (string memory)
+    public
+    view
+    override
+    returns (string memory)
     {
-        string[17] memory parts;
+        uint256 dayIndex = assignDate(tokenId);
+        string[5] memory parts;
         parts[
-            0
-        ] = '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 160 160"><style>.base { fill: white; font-family: serif; font-size: 16px; }</style><rect width="100%" height="100%" fill="black" /><text x="16" y="80" class="base">';
+        0
+        ] = '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 160 160"><style>.base { fill: white; font-family: serif; font-size: 16px; }</style><rect width="100%" height="100%" fill="black" /><text x="16" y="60" class="base">';
 
-        parts[1] = _daysToDate(dayTimestamp);
+        parts[1] = string(
+            abi.encodePacked(
+                'Epoch day in a "yyyy.M.d" format: ',
+                _daysToDate(dayIndex)
+            )
+        );
 
-        parts[2] = '</text><text x="10" y="40" class="base">';
+        parts[2] = '</text><text x="16" y="100" class="base">';
 
-        parts[3] = getChest(tokenId);
+        parts[3] = string(
+            abi.encodePacked(
+                'Epoch day in a timestamp format: ',
+                dayIndex * SECONDS_PER_DAY
+            )
+        );
 
-        parts[4] = '</text><text x="10" y="60" class="base">';
-
-        parts[5] = getHead(tokenId);
-
-        parts[6] = '</text><text x="10" y="80" class="base">';
-
-        parts[7] = getWaist(tokenId);
-
-        parts[8] = '</text><text x="10" y="100" class="base">';
-
-        parts[9] = getFoot(tokenId);
-
-        parts[10] = '</text><text x="10" y="120" class="base">';
-
-        parts[11] = getHand(tokenId);
-
-        parts[12] = '</text><text x="10" y="140" class="base">';
-
-        parts[13] = getNeck(tokenId);
-
-        parts[14] = '</text><text x="10" y="160" class="base">';
-
-        parts[15] = getRing(tokenId);
-
-        parts[16] = "</text></svg>";
+        parts[4] = "</text></svg>";
 
         string memory output = string(
             abi.encodePacked(
@@ -1566,24 +1498,7 @@ contract Days is ERC721Enumerable, ReentrancyGuard, Ownable {
                 parts[1],
                 parts[2],
                 parts[3],
-                parts[4],
-                parts[5],
-                parts[6],
-                parts[7],
-                parts[8]
-            )
-        );
-        output = string(
-            abi.encodePacked(
-                output,
-                parts[9],
-                parts[10],
-                parts[11],
-                parts[12],
-                parts[13],
-                parts[14],
-                parts[15],
-                parts[16]
+                parts[4]
             )
         );
 
@@ -1591,9 +1506,9 @@ contract Days is ERC721Enumerable, ReentrancyGuard, Ownable {
             bytes(
                 string(
                     abi.encodePacked(
-                        '{"name": "Bag #',
+                        '{"name": "Epoch day #',
                         toString(tokenId),
-                        '", "description": "Days is randomized adventurer gear generated and stored on chain. Stats, images, and other functionality are intentionally omitted for others to interpret. Feel free to use Days in any way you want.", "image": "data:image/svg+xml;base64,',
+                        '", "description": "Epoch day is an NFT wrapper over an actual calendar day. Epoch starts 1970.1.1 and ends 2070.1.1 covering exactly one hundred years and one day. ", "image": "data:image/svg+xml;base64,',
                         Base64.encode(bytes(output)),
                         '"}'
                     )
@@ -1608,12 +1523,14 @@ contract Days is ERC721Enumerable, ReentrancyGuard, Ownable {
     }
 
     function claim(uint256 tokenId) public nonReentrant {
-        require(tokenId > 0 && tokenId < 7778, "Token ID invalid");
+        int trailingNumber = int(tokenId & chunksCount);
+        require(tokenId >= 0 && trailingNumber != OWNER_FAVOURITE_NUMBER && tokenId <= claimableLimit, "Token ID invalid");
         _safeMint(_msgSender(), tokenId);
     }
 
     function ownerClaim(uint256 tokenId) public nonReentrant onlyOwner {
-        require(tokenId > 7777 && tokenId < 8001, "Token ID invalid");
+        int trailingNumber = int(tokenId & chunksCount);
+        require(tokenId >= 0 && trailingNumber == OWNER_FAVOURITE_NUMBER && tokenId < claimableLimit, "Token ID invalid");
         _safeMint(owner(), tokenId);
     }
 
@@ -1639,7 +1556,7 @@ contract Days is ERC721Enumerable, ReentrancyGuard, Ownable {
         return string(buffer);
     }
 
-    constructor() ERC721("Days", "DAY") Ownable() {}
+    constructor() ERC721("EpochDay", "DAY") Ownable() {}
 }
 
 /// [MIT License]
@@ -1648,7 +1565,7 @@ contract Days is ERC721Enumerable, ReentrancyGuard, Ownable {
 /// @author Brecht Devos <brecht@loopring.org>
 library Base64 {
     bytes internal constant TABLE =
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
     /// @notice Encodes some bytes to the base64 representation
     function encode(bytes memory data) internal pure returns (string memory) {
@@ -1678,18 +1595,18 @@ library Base64 {
                 let out := mload(add(tablePtr, and(shr(18, input), 0x3F)))
                 out := shl(8, out)
                 out := add(
-                    out,
-                    and(mload(add(tablePtr, and(shr(12, input), 0x3F))), 0xFF)
+                out,
+                and(mload(add(tablePtr, and(shr(12, input), 0x3F))), 0xFF)
                 )
                 out := shl(8, out)
                 out := add(
-                    out,
-                    and(mload(add(tablePtr, and(shr(6, input), 0x3F))), 0xFF)
+                out,
+                and(mload(add(tablePtr, and(shr(6, input), 0x3F))), 0xFF)
                 )
                 out := shl(8, out)
                 out := add(
-                    out,
-                    and(mload(add(tablePtr, and(input, 0x3F))), 0xFF)
+                out,
+                and(mload(add(tablePtr, and(input, 0x3F))), 0xFF)
                 )
                 out := shl(224, out)
 

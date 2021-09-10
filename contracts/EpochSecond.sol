@@ -15,23 +15,24 @@ import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 /// * A DAO to set seasons for new opportunities to claim Seconds
 /// * A DAO to mint Seconds for use within the Loot ecosystem
 /// @custom:unaudited This contract has not been audited. Use at your own risk.
-contract Seconds is Context, Ownable, ERC20 {
+contract EpochSecond is Context, Ownable, ERC20 {
     // Loot contract is available at https://etherscan.io/address/0xff9c1b15b16263c61d017ee9f65c50e4ae0113d7
-    address public lootContractAddress =
+    address public epochDayContractAddress =
         0xFF9C1b15B16263C61d017ee9F65C50e4AE0113D7;
-    IERC721Enumerable public lootContract;
+    IERC721Enumerable public epochDayContract;
 
-    // Give out 10,000 Seconds for every Loot Bag that a user holds
-    uint256 public adventureGoldPerTokenId = 10000 * (10**decimals());
+    // Give out 86,400 Epoch Seconds for every Epoch Day that a user holds
+    uint256 public epochSecondsPerDay = 86400 * (10**decimals());
 
-    // tokenIdStart of 1 is based on the following lines in the Loot contract:
+    // tokenIdStart of 0 is based on the following lines in the EpochDay contract(OWNER_FAVOURITE_NUMBER = 16):
     /** 
     function claim(uint256 tokenId) public nonReentrant {
-        require(tokenId > 0 && tokenId < 7778, "Token ID invalid");
+        int trailingNumber = int(tokenId & chunksCount);
+        require(tokenId >= 0 && trailingNumber != OWNER_FAVOURITE_NUMBER && tokenId < claimableLimit, "Token ID invalid");
         _safeMint(_msgSender(), tokenId);
     }
     */
-    uint256 public tokenIdStart = 1;
+    uint256 public tokenIdStart = 0;
 
     // tokenIdEnd of 8000 is based on the following lines in the Loot contract:
     /**
@@ -40,23 +41,23 @@ contract Seconds is Context, Ownable, ERC20 {
         _safeMint(owner(), tokenId);
     }
     */
-    uint256 public tokenIdEnd = 8000;
+    uint256 public tokenIdEnd = 36525;
 
-    // Seasons are used to allow users to claim tokens regularly. Seasons are
+    // Epochs are used to allow users to claim tokens regularly. Possibility be other epochs is
     // decided by the DAO.
-    uint256 public season = 0;
+    uint256 public epoch = 1;
 
     // Track claimed tokens within a season
     // IMPORTANT: The format of the mapping is:
-    // claimedForSeason[season][tokenId][claimed]
-    mapping(uint256 => mapping(uint256 => bool)) public seasonClaimedByTokenId;
+    // claimedForEpoch[epoch][tokenId][claimed]
+    mapping(uint256 => mapping(uint256 => bool)) public epochClaimedByTokenId;
 
-    constructor() Ownable() ERC20("Seconds", "SEC") {
-        // Transfer ownership to the Loot DAO
+    constructor() Ownable() ERC20("EpochSecond", "SEC") {
+        // Transfer ownership to the Epoch DAO
         // Ownable by OpenZeppelin automatically sets owner to msg.sender, but
         // we're going to be using a separate wallet for deployment
         transferOwnership(0xcD814C83198C15A542F9A13FAf84D518d1744ED1);
-        lootContract = IERC721Enumerable(lootContractAddress);
+        epochDayContract = IERC721Enumerable(lootContractAddress);
     }
 
     /// @notice Claim Seconds for a given Loot ID
@@ -69,7 +70,7 @@ contract Seconds is Context, Ownable, ERC20 {
 
         // Check that the msgSender owns the token that is being claimed
         require(
-            _msgSender() == lootContract.ownerOf(tokenId),
+            _msgSender() == epochDayContract.ownerOf(tokenId),
             "MUST_OWN_TOKEN_ID"
         );
 
@@ -83,7 +84,7 @@ contract Seconds is Context, Ownable, ERC20 {
     /// this is a concern, you should use claimRangeForOwner and claim Adventure
     /// Gold in batches.
     function claimAllForOwner() external {
-        uint256 tokenBalanceOwner = lootContract.balanceOf(_msgSender());
+        uint256 tokenBalanceOwner = epochDayContract.balanceOf(_msgSender());
 
         // Checks
         require(tokenBalanceOwner > 0, "NO_TOKENS_OWNED");
@@ -93,21 +94,21 @@ contract Seconds is Context, Ownable, ERC20 {
             // Further Checks, Effects, and Interactions are contained within
             // the _claim() function
             _claim(
-                lootContract.tokenOfOwnerByIndex(_msgSender(), i),
+                epochDayContract.tokenOfOwnerByIndex(_msgSender(), i),
                 _msgSender()
             );
         }
     }
 
-    /// @notice Claim Seconds for all tokens owned by the sender within a
+    /// @notice Claim Epoch Seconds for all tokens owned by the sender within a
     /// given range
-    /// @notice This function is useful if you own too much Loot to claim all at
-    /// once or if you want to leave some Loot unclaimed. If you leave Loot
-    /// unclaimed, however, you cannot claim it once the next season starts.
+    /// @notice This function is useful if you own too much Epoch Days to claim all at
+    /// once or if you want to leave some Epoch Seconds unclaimed. If you leave Epoch Seconds
+    /// unclaimed, however, you cannot claim it once the next epoch starts.
     function claimRangeForOwner(uint256 ownerIndexStart, uint256 ownerIndexEnd)
         external
     {
-        uint256 tokenBalanceOwner = lootContract.balanceOf(_msgSender());
+        uint256 tokenBalanceOwner = epochDayContract.balanceOf(_msgSender());
 
         // Checks
         require(tokenBalanceOwner > 0, "NO_TOKENS_OWNED");
@@ -124,13 +125,13 @@ contract Seconds is Context, Ownable, ERC20 {
             // Further Checks, Effects, and Interactions are contained within
             // the _claim() function
             _claim(
-                lootContract.tokenOfOwnerByIndex(_msgSender(), i),
+                epochDayContract.tokenOfOwnerByIndex(_msgSender(), i),
                 _msgSender()
             );
         }
     }
 
-    /// @dev Internal function to mint Loot upon claiming
+    /// @dev Internal function to mint Epoch Seconds upon claiming
     function _claim(uint256 tokenId, address tokenOwner) internal {
         // Checks
         // Check that the token ID is in range
@@ -156,12 +157,12 @@ contract Seconds is Context, Ownable, ERC20 {
         // Interactions
 
         // Send Seconds to the owner of the token ID
-        _mint(tokenOwner, adventureGoldPerTokenId);
+        _mint(tokenOwner, epochSecondsPerDay);
     }
 
-    /// @notice Allows the DAO to mint new tokens for use within the Loot
+    /// @notice Allows the DAO to mint new tokens for use within the Epoch
     /// Ecosystem
-    /// @param amountDisplayValue The amount of Loot to mint. This should be
+    /// @param amountDisplayValue The amount of Seconds to mint. This should be
     /// input as the display value, not in raw decimals. If you want to mint
     /// 100 Loot, you should enter "100" rather than the value of 100 * 10^18.
     function daoMint(uint256 amountDisplayValue) external onlyOwner {
@@ -171,12 +172,12 @@ contract Seconds is Context, Ownable, ERC20 {
     /// @notice Allows the DAO to set a new contract address for Loot. This is
     /// relevant in the event that Loot migrates to a new contract.
     /// @param lootContractAddress_ The new contract address for Loot
-    function daoSetLootContractAddress(address lootContractAddress_)
+    function daoSetLootContractAddress(address epochDayContractAddress_)
         external
         onlyOwner
     {
-        lootContractAddress = lootContractAddress_;
-        lootContract = IERC721Enumerable(lootContractAddress);
+        epochDayContractAddress = epochDayContractAddress_;
+        epochDayContract = IERC721Enumerable(epochDayContractAddress);
     }
 
     /// @notice Allows the DAO to set the token IDs that are eligible to claim
@@ -195,41 +196,7 @@ contract Seconds is Context, Ownable, ERC20 {
 
     /// @notice Allows the DAO to set a season for new Seconds claims
     /// @param season_ The season to use for claiming Loot
-    function daoSetSeason(uint256 season_) public onlyOwner {
-        season = season_;
-    }
-
-    /// @notice Allows the DAO to set the amount of Seconds that is
-    /// claimed per token ID
-    /// @param adventureGoldDisplayValue The amount of Loot a user can claim.
-    /// This should be input as the display value, not in raw decimals. If you
-    /// want to mint 100 Loot, you should enter "100" rather than the value of
-    /// 100 * 10^18.
-    function daoSetSecondsPerTokenId(uint256 adventureGoldDisplayValue)
-        public
-        onlyOwner
-    {
-        adventureGoldPerTokenId = adventureGoldDisplayValue * (10**decimals());
-    }
-
-    /// @notice Allows the DAO to set the season and Seconds per token ID
-    /// in one transaction. This ensures that there is not a gap where a user
-    /// can claim more Seconds than others
-    /// @param season_ The season to use for claiming loot
-    /// @param adventureGoldDisplayValue The amount of Loot a user can claim.
-    /// This should be input as the display value, not in raw decimals. If you
-    /// want to mint 100 Loot, you should enter "100" rather than the value of
-    /// 100 * 10^18.
-    /// @dev We would save a tiny amount of gas by modifying the season and
-    /// adventureGold variables directly. It is better practice for security,
-    /// however, to avoid repeating code. This function is so rarely used that
-    /// it's not worth moving these values into their own internal function to
-    /// skip the gas used on the modifier check.
-    function daoSetSeasonAndSecondsPerTokenID(
-        uint256 season_,
-        uint256 adventureGoldDisplayValue
-    ) external onlyOwner {
-        daoSetSeason(season_);
-        daoSetSecondsPerTokenId(adventureGoldDisplayValue);
+    function daoSetEpoch(uint256 epoch_) public onlyOwner {
+        epoch = epoch_;
     }
 }
