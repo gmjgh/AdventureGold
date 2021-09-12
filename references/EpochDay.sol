@@ -441,7 +441,7 @@ interface IERC721Metadata is IERC721 {
     /**
      * @dev Returns the Uniform Resource Identifier (URI) for `tokenId` token.
      */
-    function tokenURI(uint256 tokenId) external view returns (string memory);
+    function tokenURI(uint256 tokenId) external returns (string memory);
 }
 
 /**
@@ -588,7 +588,7 @@ library Address {
         );
         require(isContract(target), "Address: call to non-contract");
 
-        (bool success, bytes memory returndata) = target.call(value: value)(
+        (bool success, bytes memory returndata) = target.call{value : value}(
         data
         );
         return _verifyCallResult(success, returndata, errorMessage);
@@ -822,7 +822,6 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
      */
     function tokenURI(uint256 tokenId)
     public
-    view
     virtual
     override
     returns (string memory)
@@ -1417,20 +1416,28 @@ abstract contract ERC721Enumerable is ERC721, IERC721Enumerable {
     }
 }
 
-contract EpochDay is ERC721Enumerable, ReentrancyGuard, Ownable {
+contract EpochDayTest1 is ERC721Enumerable, ReentrancyGuard, Ownable {
 
     int constant OFFSET19700101 = 2440588;
     int constant SECONDS_PER_DAY = 86400;
-    int constant OWNER_FAVOURITE_NUMBER = 16;
+    int constant OWNERS_FAVOURITE_NUMBER = 16;
+    int constant EPOCH_DAYS_COUNT = 36525;
 
-    uint256 public epochDaysCount = 36525;
-    uint256 public epoch = 1;
+    uint public epochIndex = 1;
 
-    uint256 public chunksCount = 25;
-    uint256 public chunkSize = _maxDaysCount / _chunksCount;
+    /// @notice Allows the DAO to set a season for new Seconds claims
+    /// @param season_ The season to use for claiming Loot
+    function daoSetEpoch(uint epochIndex_) public onlyOwner {
+        require(epoch_ >= 1, "Epoch is invalid");
+        epochIndex = epochIndex_;
+    }
+
+    uint private chunksCount = 25;
+    uint private chunkSize = uint(EPOCH_DAYS_COUNT) / uint(chunksCount);
 
     int private _quarterIndex = 0;
 
+    // taken from https://github.com/bokkypoobah/BokkyPooBahsDateTimeLibrary which is under MIT licence
     function _daysToDate(uint _days) internal pure returns (uint year, uint month, uint day) {
         int __days = int(_days);
 
@@ -1452,9 +1459,10 @@ contract EpochDay is ERC721Enumerable, ReentrancyGuard, Ownable {
 
     function assignDate(
         uint256 tokenId
-    ) internal view returns (uint256) {
-        int trailingNumber = int(i % chunksCount);
-        uint256 output = uint256(chunkSize * trailingNumber + quarterIndex);
+    ) internal returns (uint256) {
+        uint startingDayIndex = uint(EPOCH_DAYS_COUNT) * uint(epochIndex - 1);
+        int trailingNumber = int(tokenId % chunksCount);
+        uint256 output = uint256(startingDayIndex) + uint256(chunkSize) * uint256(trailingNumber) + uint256(_quarterIndex);
         if (trailingNumber == 0) {
             _quarterIndex = _quarterIndex + 1;
         }
@@ -1464,11 +1472,11 @@ contract EpochDay is ERC721Enumerable, ReentrancyGuard, Ownable {
 
     function tokenURI(uint256 tokenId)
     public
-    view
     override
     returns (string memory)
     {
         uint256 dayIndex = assignDate(tokenId);
+        (uint year,uint month,uint day) = _daysToDate(dayIndex);
         string[5] memory parts;
         parts[
         0
@@ -1477,7 +1485,11 @@ contract EpochDay is ERC721Enumerable, ReentrancyGuard, Ownable {
         parts[1] = string(
             abi.encodePacked(
                 'Epoch day in a "yyyy.M.d" format: ',
-                _daysToDate(dayIndex)
+                year,
+                '.',
+                month,
+                '.',
+                day
             )
         );
 
@@ -1486,7 +1498,7 @@ contract EpochDay is ERC721Enumerable, ReentrancyGuard, Ownable {
         parts[3] = string(
             abi.encodePacked(
                 'Epoch day in a timestamp format: ',
-                dayIndex * SECONDS_PER_DAY
+                uint(dayIndex) * uint(SECONDS_PER_DAY)
             )
         );
 
@@ -1506,9 +1518,9 @@ contract EpochDay is ERC721Enumerable, ReentrancyGuard, Ownable {
             bytes(
                 string(
                     abi.encodePacked(
-                        '{"name": "Epoch day #',
+                        '{"name": "EpochDay #',
                         toString(tokenId),
-                        '", "description": "Epoch day is an NFT wrapper over an actual calendar day. Epoch starts 1970.1.1 and ends 2070.1.1 covering exactly one hundred years and one day. ", "image": "data:image/svg+xml;base64,',
+                        '", "description": "EpochDay is an NFT representation of an actual calendar day. The first epoch starts at 1970.1.1 and ends at 2070.1.1 covering exactly one hundred years and one day. ", "image": "data:image/svg+xml;base64,',
                         Base64.encode(bytes(output)),
                         '"}'
                     )
@@ -1523,14 +1535,18 @@ contract EpochDay is ERC721Enumerable, ReentrancyGuard, Ownable {
     }
 
     function claim(uint256 tokenId) public nonReentrant {
-        int trailingNumber = int(tokenId & chunksCount);
-        require(tokenId >= 0 && trailingNumber != OWNER_FAVOURITE_NUMBER && tokenId <= claimableLimit, "Token ID invalid");
+        int trailingNumber = int(tokenId) % int(OWNERS_FAVOURITE_NUMBER * 2);
+        uint256 startingDayIndex = uint256(EPOCH_DAYS_COUNT) * uint256((epochIndex - 1));
+        uint256 endingDayIndex = uint256(EPOCH_DAYS_COUNT) * uint256(epochIndex);
+        require(trailingNumber != OWNERS_FAVOURITE_NUMBER && tokenId >= startingDayIndex && tokenId <= endingDayIndex, "Token ID invalid");
         _safeMint(_msgSender(), tokenId);
     }
 
     function ownerClaim(uint256 tokenId) public nonReentrant onlyOwner {
-        int trailingNumber = int(tokenId & chunksCount);
-        require(tokenId >= 0 && trailingNumber == OWNER_FAVOURITE_NUMBER && tokenId < claimableLimit, "Token ID invalid");
+        int trailingNumber = int(tokenId) % int(OWNERS_FAVOURITE_NUMBER * 2);
+        uint256 startingDayIndex = uint256(EPOCH_DAYS_COUNT) * uint256((epochIndex - 1));
+        uint256 endingDayIndex = uint256(EPOCH_DAYS_COUNT) * uint256(epochIndex);
+        require(trailingNumber == OWNERS_FAVOURITE_NUMBER && tokenId >= startingDayIndex && tokenId <= endingDayIndex, "Token ID invalid");
         _safeMint(owner(), tokenId);
     }
 

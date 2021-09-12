@@ -16,6 +16,7 @@ import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 /// * A DAO to mint Seconds for use within the Loot ecosystem
 /// @custom:unaudited This contract has not been audited. Use at your own risk.
 contract EpochSecond is Context, Ownable, ERC20 {
+    int constant EPOCH_DAYS_COUNT = 36525;
     // Loot contract is available at https://etherscan.io/address/0xff9c1b15b16263c61d017ee9f65c50e4ae0113d7
     address public epochDayContractAddress =
         0xFF9C1b15B16263C61d017ee9F65C50e4AE0113D7;
@@ -23,29 +24,6 @@ contract EpochSecond is Context, Ownable, ERC20 {
 
     // Give out 86,400 Epoch Seconds for every Epoch Day that a user holds
     uint256 public epochSecondsPerDay = 86400 * (10**decimals());
-
-    // tokenIdStart of 0 is based on the following lines in the EpochDay contract(OWNER_FAVOURITE_NUMBER = 16):
-    /** 
-    function claim(uint256 tokenId) public nonReentrant {
-        int trailingNumber = int(tokenId & chunksCount);
-        require(tokenId >= 0 && trailingNumber != OWNER_FAVOURITE_NUMBER && tokenId < claimableLimit, "Token ID invalid");
-        _safeMint(_msgSender(), tokenId);
-    }
-    */
-    uint256 public tokenIdStart = 0;
-
-    // tokenIdEnd of 8000 is based on the following lines in the Loot contract:
-    /**
-        function ownerClaim(uint256 tokenId) public nonReentrant onlyOwner {
-        require(tokenId > 7777 && tokenId < 8001, "Token ID invalid");
-        _safeMint(owner(), tokenId);
-    }
-    */
-    uint256 public tokenIdEnd = 36525;
-
-    // Epochs are used to allow users to claim tokens regularly. Possibility be other epochs is
-    // decided by the DAO.
-    uint256 public epoch = 1;
 
     // Track claimed tokens within a season
     // IMPORTANT: The format of the mapping is:
@@ -136,15 +114,17 @@ contract EpochSecond is Context, Ownable, ERC20 {
         // Checks
         // Check that the token ID is in range
         // We use >= and <= to here because all of the token IDs are 0-indexed
+        uint256 startingDayIndex = uint256(EPOCH_DAYS_COUNT) * uint256((epochDayContract.epochIndex - 1));
+        uint256 endingDayIndex = uint256(EPOCH_DAYS_COUNT) * uint256(epochDayContract.epochIndex);
         require(
-            tokenId >= tokenIdStart && tokenId <= tokenIdEnd,
+            tokenId >= startingDayIndex && tokenId <= endingDayIndex,
             "TOKEN_ID_OUT_OF_RANGE"
         );
 
         // Check that Seconds have not already been claimed this season
         // for a given tokenId
         require(
-            !seasonClaimedByTokenId[season][tokenId],
+            !epochClaimedByTokenId[epochDayContract.epochIndex][tokenId],
             "GOLD_CLAIMED_FOR_TOKEN_ID"
         );
 
@@ -152,7 +132,7 @@ contract EpochSecond is Context, Ownable, ERC20 {
 
         // Mark that Seconds has been claimed for this season for the
         // given tokenId
-        seasonClaimedByTokenId[season][tokenId] = true;
+        epochClaimedByTokenId[epochDayContract.epochIndex][tokenId] = true;
 
         // Interactions
 
@@ -178,25 +158,5 @@ contract EpochSecond is Context, Ownable, ERC20 {
     {
         epochDayContractAddress = epochDayContractAddress_;
         epochDayContract = IERC721Enumerable(epochDayContractAddress);
-    }
-
-    /// @notice Allows the DAO to set the token IDs that are eligible to claim
-    /// Loot
-    /// @param tokenIdStart_ The start of the eligible token range
-    /// @param tokenIdEnd_ The end of the eligible token range
-    /// @dev This is relevant in case a future Loot contract has a different
-    /// total supply of Loot
-    function daoSetTokenIdRange(uint256 tokenIdStart_, uint256 tokenIdEnd_)
-        external
-        onlyOwner
-    {
-        tokenIdStart = tokenIdStart_;
-        tokenIdEnd = tokenIdEnd_;
-    }
-
-    /// @notice Allows the DAO to set a season for new Seconds claims
-    /// @param season_ The season to use for claiming Loot
-    function daoSetEpoch(uint256 epoch_) public onlyOwner {
-        epoch = epoch_;
     }
 }
