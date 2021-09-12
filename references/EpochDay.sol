@@ -438,7 +438,7 @@ interface IERC721Metadata is IERC721 {
     /**
      * @dev Returns the Uniform Resource Identifier (URI) for `tokenId` token.
      */
-    function tokenURI(uint256 tokenId) external returns (string memory);
+    function tokenURI(uint256 tokenId) external view returns (string memory);
 }
 
 /**
@@ -819,6 +819,7 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
      */
     function tokenURI(uint256 tokenId)
     public
+    view
     virtual
     override
     returns (string memory)
@@ -1422,17 +1423,10 @@ contract EpochDayTest1 is ERC721Enumerable, ReentrancyGuard, Ownable {
 
     uint public epochIndex = 1;
 
-    /// @notice Allows the DAO to set a new epoch for new Days to claim
-    /// @param epochIndex_ The epochIndex to use for claiming EpochDays from new epoch
     function daoSetEpoch(uint epochIndex_) public onlyOwner {
         require(epochIndex_ >= 1, "Epoch is invalid");
         epochIndex = epochIndex_;
     }
-
-    uint private chunksCount = 25;
-    uint private chunkSize = uint(EPOCH_DAYS_COUNT) / uint(chunksCount);
-
-    int private _quarterIndex = 0;
 
     // taken from https://github.com/bokkypoobah/BokkyPooBahsDateTimeLibrary which is under MIT licence
     function _daysToDate(uint _days) internal pure returns (uint year, uint month, uint day) {
@@ -1454,26 +1448,13 @@ contract EpochDayTest1 is ERC721Enumerable, ReentrancyGuard, Ownable {
         day = uint(_day);
     }
 
-    function assignDate(
-        uint256 tokenId
-    ) internal returns (uint256) {
-        uint startingDayIndex = uint(EPOCH_DAYS_COUNT) * uint(epochIndex - 1);
-        int trailingNumber = int(tokenId % chunksCount);
-        uint256 output = uint256(startingDayIndex) + uint256(chunkSize) * uint256(trailingNumber) + uint256(_quarterIndex);
-        if (trailingNumber == 0) {
-            _quarterIndex = _quarterIndex + 1;
-        }
-
-        return output;
-    }
-
     function tokenURI(uint256 tokenId)
     public
+    pure
     override
     returns (string memory)
     {
-        uint256 dayIndex = assignDate(tokenId);
-        (uint year,uint month,uint day) = _daysToDate(dayIndex);
+        (uint year,uint month,uint day) = _daysToDate(tokenId);
         string[5] memory parts;
         parts[
         0
@@ -1495,7 +1476,7 @@ contract EpochDayTest1 is ERC721Enumerable, ReentrancyGuard, Ownable {
         parts[3] = string(
             abi.encodePacked(
                 'Epoch day in a timestamp format: ',
-                uint(dayIndex) * uint(SECONDS_PER_DAY)
+                uint(tokenId) * uint(SECONDS_PER_DAY)
             )
         );
 
