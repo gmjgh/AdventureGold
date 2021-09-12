@@ -1,10 +1,6 @@
-/**
- *Submitted for verification at Etherscan.io on 2021-08-27
- */
-
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.7;
 
 /**
  * @dev Interface of the ERC165 standard, as defined in the
@@ -15,6 +11,7 @@ pragma solidity ^0.8.0;
  *
  * For an implementation, see {ERC165}.
  */
+
 interface IERC165 {
     /**
      * @dev Returns true if this contract implements the interface defined by
@@ -1425,10 +1422,10 @@ contract EpochDayTest1 is ERC721Enumerable, ReentrancyGuard, Ownable {
 
     uint public epochIndex = 1;
 
-    /// @notice Allows the DAO to set a season for new Seconds claims
-    /// @param season_ The season to use for claiming Loot
+    /// @notice Allows the DAO to set a new epoch for new Days to claim
+    /// @param epochIndex_ The epochIndex to use for claiming EpochDays from new epoch
     function daoSetEpoch(uint epochIndex_) public onlyOwner {
-        require(epoch_ >= 1, "Epoch is invalid");
+        require(epochIndex_ >= 1, "Epoch is invalid");
         epochIndex = epochIndex_;
     }
 
