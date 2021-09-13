@@ -7,26 +7,26 @@ import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 
-/// @title Epoch Seconds for Epoch Day holders!
+/// @title Epoch Minutes for Epoch Day holders!
 /// @author Will Papper <https://twitter.com/WillPapper>
-/// @notice This contract mints Epoch Seconds for Epoch Day holders
+/// @notice This contract mints Epoch Minutes for Epoch Day holders
 /// @custom:unaudited This contract has not been audited. Use at your own risk.
-contract EpochSecond is Context, Ownable, ERC20 {
+contract EpochMinute is Context, Ownable, ERC20 {
     int constant EPOCH_DAYS_COUNT = 36525;
     // Loot contract is available at https://etherscan.io/address/0xff9c1b15b16263c61d017ee9f65c50e4ae0113d7
     address public epochDayContractAddress =
         0xFF9C1b15B16263C61d017ee9F65C50e4AE0113D7;
     IERC721Enumerable public epochDayContract;
 
-    // Give out 86,400 Epoch Seconds for every Epoch Day that a user holds
-    uint256 public epochSecondsPerDay = 86400 * (10**decimals());
+    // Give out 86,400 Epoch Minutes for every Epoch Day that a user holds
+    uint256 public epochMinutesPerDay = 1440 * (10**decimals());
 
     // Track claimed tokens within a season
     // IMPORTANT: The format of the mapping is:
     // claimedForEpoch[epoch][tokenId][claimed]
     mapping(uint256 => mapping(uint256 => bool)) public epochClaimedByTokenId;
 
-    constructor() Ownable() ERC20("Epoch Second", "SEC") {
+    constructor() Ownable() ERC20("Epoch Minute", "MIN") {
         // Transfer ownership to the Epoch DAO
         // Ownable by OpenZeppelin automatically sets owner to msg.sender, but
         // we're going to be using a separate wallet for deployment
@@ -34,7 +34,7 @@ contract EpochSecond is Context, Ownable, ERC20 {
         epochDayContract = IERC721Enumerable(lootContractAddress);
     }
 
-    /// @notice Claim Epoch Seconds for a given Epoch Day ID
+    /// @notice Claim Epoch Minutes for a given Epoch Day ID
     /// @param tokenId The tokenId of the Epoch Day NFT
     function claimById(uint256 tokenId) external {
         // Follow the Checks-Effects-Interactions pattern to prevent reentrancy
@@ -53,9 +53,9 @@ contract EpochSecond is Context, Ownable, ERC20 {
         _claim(tokenId, _msgSender());
     }
 
-    /// @notice Claim Epoch Seconds for all tokens owned by the sender
+    /// @notice Claim Epoch Minutes for all tokens owned by the sender
     /// @notice This function will run out of gas if you have too much Epoch Days! If
-    /// this is a concern, you should use claimRangeForOwner and claim Epoch Seconds
+    /// this is a concern, you should use claimRangeForOwner and claim Epoch Minutes
     /// in batches.
     function claimAllForOwner() external {
         uint256 tokenBalanceOwner = epochDayContract.balanceOf(_msgSender());
@@ -74,10 +74,10 @@ contract EpochSecond is Context, Ownable, ERC20 {
         }
     }
 
-    /// @notice Claim Epoch Seconds for all tokens owned by the sender within a
+    /// @notice Claim Epoch Minutes for all tokens owned by the sender within a
     /// given range
     /// @notice This function is useful if you own too much Epoch Days to claim all at
-    /// once or if you want to leave some Epoch Seconds unclaimed. If you leave Epoch Seconds
+    /// once or if you want to leave some Epoch Minutes unclaimed. If you leave Epoch Minutes
     /// unclaimed, however, you cannot claim it once the next epoch starts.
     function claimRangeForOwner(uint256 ownerIndexStart, uint256 ownerIndexEnd)
         external
@@ -105,7 +105,7 @@ contract EpochSecond is Context, Ownable, ERC20 {
         }
     }
 
-    /// @dev Internal function to mint Epoch Seconds upon claiming
+    /// @dev Internal function to mint Epoch Minutes upon claiming
     function _claim(uint256 tokenId, address tokenOwner) internal {
         // Checks
         // Check that the token ID is in range
@@ -117,7 +117,7 @@ contract EpochSecond is Context, Ownable, ERC20 {
             "TOKEN_ID_OUT_OF_RANGE"
         );
 
-        // Check that Epoch Seconds have not already been claimed this epoch
+        // Check that Epoch Minutes have not already been claimed this epoch
         // for a given tokenId
         require(
             !epochClaimedByTokenId[epochDayContract.epochIndex][tokenId],
@@ -126,14 +126,14 @@ contract EpochSecond is Context, Ownable, ERC20 {
 
         // Effects
 
-        // Mark that Epoch Seconds has been claimed for this epoch for the
+        // Mark that Epoch Minutes has been claimed for this epoch for the
         // given tokenId
         epochClaimedByTokenId[epochDayContract.epochIndex][tokenId] = true;
 
         // Interactions
 
-        // Send Epoch Seconds to the owner of the token ID
-        _mint(tokenOwner, epochSecondsPerDay);
+        // Send Epoch Minutes to the owner of the token ID
+        _mint(tokenOwner, epochMinutesPerDay);
     }
 
     /// @notice Allows the DAO to set a new contract address for Epoch Day. This is
