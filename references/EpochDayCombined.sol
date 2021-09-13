@@ -1396,7 +1396,7 @@ abstract contract ERC721Enumerable is ERC721, IERC721Enumerable {
     }
 }
 
-contract EpochDayTest is ERC721Enumerable, ReentrancyGuard, Ownable {
+contract EpochDay is ERC721Enumerable, ReentrancyGuard, Ownable {
 
     int constant OFFSET19700101 = 2440588;
     int constant SECONDS_PER_DAY = 86400;
@@ -1606,25 +1606,29 @@ library Base64 {
     }
 }
 
-abstract contract EpochTime is Context, Ownable, ERC20 {
+/// @title Epoch Time Entity for Epoch Day holders!
+/// @author gmjgh inspired by Will Pappers AGLD <https://twitter.com/WillPapper>
+/// @notice This contract mints Epoch Time Entities for Epoch Day holders
+/// @custom:unaudited This contract has not been audited. Use at your own risk.
+abstract contract EpochTimeEntity is Context, Ownable, ERC20 {
     int constant EPOCH_DAYS_COUNT = 36525;
-    // Loot contract is available at https://etherscan.io/address/0xff9c1b15b16263c61d017ee9f65c50e4ae0113d7
+    // Epoch Day contract is available at https://etherscan.io/address/0xd9145CCE52D386f254917e481eB44e9943F39138
     address public epochDayContractAddress =
     0xd9145CCE52D386f254917e481eB44e9943F39138;
-    EpochDayTest public epochDayContract;
+    EpochDay public epochDayContract;
 
     function epochTimePerDay() virtual public returns (uint256);
 
-    // Track claimed tokens within a season
+    // Track claimed tokens within an epoch
     // IMPORTANT: The format of the mapping is:
     // claimedForEpoch[epoch][tokenId][claimed]
     mapping(uint256 => mapping(uint256 => bool)) public epochClaimedByTokenId;
 
     constructor() Ownable() {
-        epochDayContract = EpochDayTest(epochDayContractAddress);
+        epochDayContract = EpochDay(epochDayContractAddress);
     }
 
-    /// @notice Claim Epoch Seconds for a given Epoch Day ID
+    /// @notice Claim Epoch Time Entity for a given Epoch Day ID
     /// @param tokenId The tokenId of the Epoch Day NFT
     function claimById(uint256 tokenId) external {
         // Follow the Checks-Effects-Interactions pattern to prevent reentrancy
@@ -1643,9 +1647,9 @@ abstract contract EpochTime is Context, Ownable, ERC20 {
         _claim(tokenId, _msgSender());
     }
 
-    /// @notice Claim Epoch Seconds for all tokens owned by the sender
+    /// @notice Claim Epoch Time Entities for all tokens owned by the sender
     /// @notice This function will run out of gas if you have too much Epoch Days! If
-    /// this is a concern, you should use claimRangeForOwner and claim Epoch Seconds
+    /// this is a concern, you should use claimRangeForOwner and claim Epoch Time Entities
     /// in batches.
     function claimAllForOwner() external {
         uint256 tokenBalanceOwner = epochDayContract.balanceOf(_msgSender());
@@ -1664,10 +1668,10 @@ abstract contract EpochTime is Context, Ownable, ERC20 {
         }
     }
 
-    /// @notice Claim Epoch Seconds for all tokens owned by the sender within a
+    /// @notice Claim Epoch Time Entities for all tokens owned by the sender within a
     /// given range
     /// @notice This function is useful if you own too much Epoch Days to claim all at
-    /// once or if you want to leave some Epoch Seconds unclaimed. If you leave Epoch Seconds
+    /// once or if you want to leave some Epoch Seconds unclaimed. If you leave Epoch Time Entities
     /// unclaimed, however, you cannot claim it once the next epoch starts.
     function claimRangeForOwner(uint256 ownerIndexStart, uint256 ownerIndexEnd)
     external
@@ -1695,7 +1699,7 @@ abstract contract EpochTime is Context, Ownable, ERC20 {
         }
     }
 
-    /// @dev Internal function to mint Epoch Seconds upon claiming
+    /// @dev Internal function to mint Epoch Time Entities upon claiming
     function _claim(uint256 tokenId, address tokenOwner) internal {
         // Checks
         // Check that the token ID is in range
@@ -1707,11 +1711,11 @@ abstract contract EpochTime is Context, Ownable, ERC20 {
             "TOKEN_ID_OUT_OF_RANGE"
         );
 
-        // Check that Epoch Seconds have not already been claimed this epoch
+        // Check that Epoch Time Entities have not already been claimed this epoch
         // for a given tokenId
         require(
             !epochClaimedByTokenId[epochDayContract.epochIndex()][tokenId],
-            "SECONDS_CLAIMED_FOR_TOKEN_ID"
+            "EPOCH_TIME_ENTITY_CLAIMED_FOR_TOKEN_ID"
         );
 
         // Effects
@@ -1734,11 +1738,11 @@ abstract contract EpochTime is Context, Ownable, ERC20 {
     onlyOwner
     {
         epochDayContractAddress = epochDayContractAddress_;
-        epochDayContract = EpochDayTest(epochDayContractAddress);
+        epochDayContract = EpochDay(epochDayContractAddress);
     }
 }
 
-contract EpochSecondTest is EpochTime {
+contract EpochSecond is EpochTimeEntity {
 
     // Give out 86,400 Epoch Seconds for every Epoch Day that a user holds
     function epochTimePerDay() virtual public override returns (uint256){
@@ -1746,4 +1750,34 @@ contract EpochSecondTest is EpochTime {
     }
 
     constructor() EpochTime() ERC20("Epoch Second", "SEC"){}
+}
+
+contract EpochMillisecond is EpochTimeEntity {
+
+    // Give out 86,400,000 Epoch Milliseconds for every Epoch Day that a user holds
+    function epochTimePerDay() virtual public override returns (uint256){
+        return 86400 * 1000 * (10**decimals());
+    }
+
+    constructor() EpochTime() ERC20("Epoch Millisecond", "MSEC"){}
+}
+
+contract EpochMinute is EpochTimeEntity {
+
+    // Give out 1,440 Epoch Minutes for every Epoch Day that a user holds
+    function epochTimePerDay() virtual public override returns (uint256){
+        return 1440 * (10**decimals());
+    }
+
+    constructor() EpochTime() ERC20("Epoch Minute", "MIN"){}
+}
+
+contract EpochHour is EpochTimeEntity {
+
+    // Give out 24 Epoch Hours for every Epoch Day that a user holds
+    function epochTimePerDay() virtual public override returns (uint256){
+        return 24 * (10**decimals());
+    }
+
+    constructor() EpochTime() ERC20("Epoch Hour", "HOUR"){}
 }
