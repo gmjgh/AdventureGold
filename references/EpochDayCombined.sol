@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.7;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 
 /**
  * @dev Interface of the ERC165 standard, as defined in the
@@ -1405,7 +1405,7 @@ contract EpochDay is ERC721Enumerable, ReentrancyGuard, Ownable {
 
     uint public epochIndex = 1;
 
-    function daoSetEpoch(uint epochIndex_) public onlyOwner {
+    function changeEpoch(uint epochIndex_) public onlyOwner {
         require(epochIndex_ >= 1, "Epoch is invalid");
         epochIndex = epochIndex_;
     }
@@ -1535,6 +1535,212 @@ contract EpochDay is ERC721Enumerable, ReentrancyGuard, Ownable {
     constructor() ERC721("Epoch Day", "DAY") Ownable() {}
 }
 
+contract EpochYear is ERC721Enumerable, ReentrancyGuard, Ownable {
+
+    int constant EPOCH_YEARS_COUNT = 100;
+    int constant YEAR_LENGTH_DAYS = 365;
+    uint256 constant DAY_LENGTH_MILLISECONDS = 86400000;
+    uint256 constant DAY_LENGTH_SECONDS = 86400;
+    uint256 constant DAY_LENGTH_MINUTES = 1440;
+    uint256 constant DAY_LENGTH_HOURS = 24;
+
+    address public epochDayContractAddress =
+    0xd9145CCE52D386f254917e481eB44e9943F39138;
+    EpochDay public epochDayContract;
+
+    address public epochMillisecondContractAddress =
+    0xd9145CCE52D386f254917e481eB44e9943F39138;
+    EpochMillisecond public epochMillisecondContract;
+
+    address public epochSecondContractAddress =
+    0xd9145CCE52D386f254917e481eB44e9943F39138;
+    EpochSecond public epochSecondContract;
+
+    address public epochMinuteContractAddress =
+    0xd9145CCE52D386f254917e481eB44e9943F39138;
+    EpochMinute public epochMinuteContract;
+
+    address public epochHourContractAddress =
+    0xd9145CCE52D386f254917e481eB44e9943F39138;
+    EpochHour public epochHourContract;
+
+
+    uint256 secondsPriceOfTheYear = uint256(YEAR_LENGTH) * uint256(DAY_LENGTH_SECONDS);
+    uint256 minutesPriceOfTheYear = uint256(YEAR_LENGTH) * uint256(DAY_LENGTH_MINUTES);
+    uint256 hoursPriceOfTheYear = uint256(YEAR_LENGTH) * uint256(DAY_LENGTH_HOURS);
+
+    function claimYearForMilliseconds(uint256 tokenId) public nonReentrant {
+        _claim(tokenId, _msgSender(), epochMillisecondContract, DAY_LENGTH_MILLISECONDS);
+    }
+
+    function claimYearForSeconds(uint256 tokenId) public nonReentrant {
+        _claim(tokenId, _msgSender(), epochSecondContract, DAY_LENGTH_SECONDS);
+    }
+
+    function claimYearForMinutes(uint256 tokenId) public nonReentrant {
+        _claim(tokenId, _msgSender(), epochMinuteContract, DAY_LENGTH_MINUTES);
+    }
+
+    function claimYearForHours(uint256 tokenId) public nonReentrant {
+        _claim(tokenId, _msgSender(), epochHourContract, DAY_LENGTH_HOURS);
+    }
+
+    // taken from https://github.com/bokkypoobah/BokkyPooBahsDateTimeLibrary which is under MIT licence
+    function _daysToDate(uint _days) internal pure returns (uint year, uint month, uint day) {
+        int __days = int(_days);
+
+        int L = __days + 68569 + OFFSET19700101;
+        int N = 4 * L / 146097;
+        L = L - (146097 * N + 3) / 4;
+        int _year = 4000 * (L + 1) / 1461001;
+        L = L - 1461 * _year / 4 + 31;
+        int _month = 80 * L / 2447;
+        int _day = L - 2447 * _month / 80;
+        L = _month / 11;
+        _month = _month + 2 - 12 * L;
+        _year = 100 * (N - 49) + _year + L;
+
+        year = uint(_year);
+        month = uint(_month);
+        day = uint(_day);
+    }
+
+    function tokenURI(uint256 tokenId)
+    public
+    pure
+    override
+    returns (string memory)
+    {
+        (uint year,uint month,uint day) = _daysToDate(tokenId);
+        string[5] memory parts;
+        parts[
+        0
+        ] = '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 160 160"><style>.date { fill: white; font-family: serif; font-size: 32px; }</style> <style>.timestamp { fill: white; font-family: serif; font-size: 16px; }</style><rect width="100%" height="100%" fill="black" /><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" class="date">';
+
+        parts[1] = string(
+            abi.encodePacked(
+                year,
+                '.',
+                month,
+                '.',
+                day
+            )
+        );
+
+        parts[2] = '</text><text x="50%" y="95%" dominant-baseline="middle" text-anchor="middle" class="timestamp">';
+
+        parts[3] = string(
+            abi.encodePacked(
+                '(',
+                uint(tokenId) * uint(SECONDS_PER_DAY),
+                ')'
+            )
+        );
+
+        parts[4] = "</text></svg>";
+
+        string memory output = string(
+            abi.encodePacked(
+                parts[0],
+                parts[1],
+                parts[2],
+                parts[3],
+                parts[4]
+            )
+        );
+
+        string memory json = Base64.encode(
+            bytes(
+                string(
+                    abi.encodePacked(
+                        '{"name": "Epoch Day #',
+                        toString(tokenId),
+                        '", "description": "Epoch Day is an NFT representation of an actual calendar day. The first epoch starts at 1970.1.1 and ends at 2070.1.1 covering exactly one hundred years and one day. ", "image": "data:image/svg+xml;base64,',
+                        Base64.encode(bytes(output)),
+                        '"}'
+                    )
+                )
+            )
+        );
+        output = string(
+            abi.encodePacked("data:application/json;base64,", json)
+        );
+
+        return output;
+    }
+
+    /// @dev Internal function to mint Epoch Time Entities upon claiming
+    function _claim(uint256 tokenId, address tokenOwner, ERC20Burnable burnableContract, uint256 yearPrice) internal {
+        // Checks
+        // Check that the token ID is in range
+        // We use >= and <= to here because all of the token IDs are 0-indexed
+        uint256 burnableAmount = uint256(YEAR_LENGTH) * uint256(yearPrice);
+        uint256 startingIndex = uint256(EPOCH_YEARS_COUNT) * (epochDayContract.epochIndex() - 1) + 1;
+        uint256 endingIndex = uint256(EPOCH_YEARS_COUNT) * epochDayContract.epochIndex();
+        uint256 tokenBalanceOwned = burnableContract.balanceOf(tokenOwner);
+
+        // Checks
+        require(tokenBalanceOwned >= burnableAmount, "NOT_ENOUGH_MILLISECONDS_OWNED");
+        require(
+            tokenId >= startingIndex && tokenId <= endingIndex,
+            "TOKEN_ID_OUT_OF_RANGE"
+        );
+
+        // Approval for burning
+        burnableContract.approve(address(this), burnableAmount);
+        burnableContract.burnFrom(address(this), burnableAmount);
+        burnableContract.approve(address(this), 0);
+
+        _safeMint(tokenOwner, tokenId);
+    }
+
+    function _checkPublicPermissions(uint256 tokenId) public nonReentrant {
+        int trailingNumber = int(tokenId) % int(OWNERS_FAVOURITE_NUMBER * 2);
+        uint256 startingDayIndex = uint256(EPOCH_YEARS_COUNT) * uint256((epochIndex - 1)) + 1;
+        uint256 endingDayIndex = uint256(EPOCH_YEARS_COUNT) * uint256(epochIndex);
+        require(trailingNumber != OWNERS_FAVOURITE_NUMBER && tokenId >= startingDayIndex && tokenId <= endingDayIndex, "Token ID invalid");
+        _safeMint(_msgSender(), tokenId);
+    }
+
+    function ownerClaim(uint256 tokenId) public nonReentrant onlyOwner {
+        int trailingNumber = int(tokenId) % int(OWNERS_FAVOURITE_NUMBER * 2);
+        uint256 startingDayIndex = uint256(EPOCH_YEARS_COUNT) * uint256((epochIndex - 1)) + 1;
+        uint256 endingDayIndex = uint256(EPOCH_YEARS_COUNT) * uint256(epochIndex);
+        require(trailingNumber == OWNERS_FAVOURITE_NUMBER && tokenId >= startingDayIndex && tokenId <= endingDayIndex, "Token ID invalid");
+        _safeMint(owner(), tokenId);
+    }
+
+    function toString(uint256 value) internal pure returns (string memory) {
+        // Inspired by OraclizeAPI's implementation - MIT license
+        // https://github.com/oraclize/ethereum-api/blob/b42146b063c7d6ee1358846c198246239e9360e8/oraclizeAPI_0.4.25.sol
+
+        if (value == 0) {
+            return "0";
+        }
+        uint256 temp = value;
+        uint256 digits;
+        while (temp != 0) {
+            digits++;
+            temp /= 10;
+        }
+        bytes memory buffer = new bytes(digits);
+        while (value != 0) {
+            digits -= 1;
+            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
+            value /= 10;
+        }
+        return string(buffer);
+    }
+
+    constructor() ERC721("Epoch Day", "DAY") Ownable() {
+        epochDayContract = EpochDay(epochDayContractAddress);
+        epochMillisecondContract = EpochMillisecond(epochMillisecondContractAddress);
+        epochSecondContract = EpochSecond(epochSecondContractAddress);
+        epochMinuteContract = EpochMinute(epochMinuteContractAddress);
+        epochHourContract = EpochHour(epochHourContractAddress);
+    }
+}
+
 /// [MIT License]
 /// @title Base64
 /// @notice Provides a function for encoding some bytes in base64
@@ -1610,7 +1816,7 @@ library Base64 {
 /// @author gmjgh inspired by Will Pappers AGLD <https://twitter.com/WillPapper>
 /// @notice This contract mints Epoch Time Entities for Epoch Day holders
 /// @custom:unaudited This contract has not been audited. Use at your own risk.
-abstract contract EpochTimeEntity is Context, Ownable, ERC20 {
+abstract contract EpochTimeEntity is Ownable, ERC20Burnable {
     int constant EPOCH_DAYS_COUNT = 36525;
     // Epoch Day contract is available at https://etherscan.io/address/0xd9145CCE52D386f254917e481eB44e9943F39138
     address public epochDayContractAddress =
@@ -1720,13 +1926,13 @@ abstract contract EpochTimeEntity is Context, Ownable, ERC20 {
 
         // Effects
 
-        // Mark that Epoch Seconds has been claimed for this epoch for the
+        // Mark that Epoch Time Entities has been claimed for this epoch for the
         // given tokenId
         epochClaimedByTokenId[epochDayContract.epochIndex()][tokenId] = true;
 
         // Interactions
 
-        // Send Epoch Seconds to the owner of the token ID
+        // Send Epoch Time Entities to the owner of the token ID
         _mint(tokenOwner, epochTimePerDay());
     }
 
@@ -1742,31 +1948,31 @@ abstract contract EpochTimeEntity is Context, Ownable, ERC20 {
     }
 }
 
-contract EpochSecond is EpochTimeEntity {
-
-    // Give out 86,400 Epoch Seconds for every Epoch Day that a user holds
-    function epochTimePerDay() virtual public override returns (uint256){
-        return 86400 * (10**decimals());
-    }
-
-    constructor() EpochTime() ERC20("Epoch Second", "SEC"){}
-}
-
 contract EpochMillisecond is EpochTimeEntity {
 
     // Give out 86,400,000 Epoch Milliseconds for every Epoch Day that a user holds
     function epochTimePerDay() virtual public override returns (uint256){
-        return 86400 * 1000 * (10**decimals());
+        return 86400 * 1000 * (10 ** decimals());
     }
 
     constructor() EpochTime() ERC20("Epoch Millisecond", "MSEC"){}
+}
+
+contract EpochSecond is EpochTimeEntity {
+
+    // Give out 86,400 Epoch Seconds for every Epoch Day that a user holds
+    function epochTimePerDay() virtual public override returns (uint256){
+        return 86400 * (10 ** decimals());
+    }
+
+    constructor() EpochTime() ERC20("Epoch Second", "SEC"){}
 }
 
 contract EpochMinute is EpochTimeEntity {
 
     // Give out 1,440 Epoch Minutes for every Epoch Day that a user holds
     function epochTimePerDay() virtual public override returns (uint256){
-        return 1440 * (10**decimals());
+        return 1440 * (10 ** decimals());
     }
 
     constructor() EpochTime() ERC20("Epoch Minute", "MIN"){}
@@ -1776,7 +1982,7 @@ contract EpochHour is EpochTimeEntity {
 
     // Give out 24 Epoch Hours for every Epoch Day that a user holds
     function epochTimePerDay() virtual public override returns (uint256){
-        return 24 * (10**decimals());
+        return 24 * (10 ** decimals());
     }
 
     constructor() EpochTime() ERC20("Epoch Hour", "HOUR"){}
