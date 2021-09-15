@@ -1399,15 +1399,28 @@ abstract contract ERC721Enumerable is ERC721, IERC721Enumerable {
 contract EpochDay is ERC721Enumerable, ReentrancyGuard, Ownable {
 
     int constant OFFSET19700101 = 2440588;
-    int constant SECONDS_PER_DAY = 86400;
-    int constant OWNERS_FAVOURITE_NUMBER = 16;
-    int constant EPOCH_DAYS_COUNT = 36525;
+    uint256 constant SECONDS_PER_DAY = 86400;
+    uint256 constant OWNERS_FAVOURITE_NUMBER = 16;
+    uint256 constant EPOCH_DAYS_COUNT_DEFAULT = 36525;
 
-    uint public epochIndex = 1;
+    address public epochYearContractAddress = address(0);
 
-    function changeEpoch(uint epochIndex_) public onlyOwner {
-        require(epochIndex_ >= 1, "Epoch is invalid");
+    uint256 public epochIndex = 1;
+    uint256 public epochSize = uint256(EPOCH_DAYS_COUNT_DEFAULT);
+
+    function changeEpochIndex(uint256 epochIndex_) public onlyOwner {
+        require(epochIndex_ >= 1, "Epoch index is invalid");
         epochIndex = epochIndex_;
+    }
+
+    function changeEpochSize(uint256 epochSize_) public onlyOwner {
+        require(epochSize_ >= 1, "Epoch size is invalid");
+        epochSize = epochSize_;
+    }
+
+    function changeEpochYearContractAddress(address epochYearContractAddress_) public onlyOwner {
+        require(epochYearContractAddress_ != address(0), "epochYearContractAddress cannot be 0 address");
+        epochYearContractAddress = epochYearContractAddress_;
     }
 
     // taken from https://github.com/bokkypoobah/BokkyPooBahsDateTimeLibrary which is under MIT licence
@@ -1444,11 +1457,11 @@ contract EpochDay is ERC721Enumerable, ReentrancyGuard, Ownable {
 
         parts[1] = string(
             abi.encodePacked(
-                year,
+                toString(year),
                 '.',
-                month,
+                toString(month),
                 '.',
-                day
+                toString(day)
             )
         );
 
@@ -1457,7 +1470,7 @@ contract EpochDay is ERC721Enumerable, ReentrancyGuard, Ownable {
         parts[3] = string(
             abi.encodePacked(
                 '(',
-                uint(tokenId) * uint(SECONDS_PER_DAY),
+                toString(uint256(tokenId) * uint256(SECONDS_PER_DAY)),
                 ')'
             )
         );
@@ -1494,20 +1507,25 @@ contract EpochDay is ERC721Enumerable, ReentrancyGuard, Ownable {
         return output;
     }
 
+    function checkTokenGeneralValidity(uint256 tokenId) view public {
+        uint256 trailingNumber = tokenId % uint256(OWNERS_FAVOURITE_NUMBER * 2);
+        require(bool(trailingNumber != OWNERS_FAVOURITE_NUMBER && _msgSender() != owner()) || bool(trailingNumber == OWNERS_FAVOURITE_NUMBER && _msgSender() == owner()), "Token ID invalid");
+    }
+
     function claim(uint256 tokenId) public nonReentrant {
-        int trailingNumber = int(tokenId) % int(OWNERS_FAVOURITE_NUMBER * 2);
-        uint256 startingDayIndex = uint256(EPOCH_DAYS_COUNT) * uint256((epochIndex - 1));
-        uint256 endingDayIndex = uint256(EPOCH_DAYS_COUNT) * uint256(epochIndex);
-        require(trailingNumber != OWNERS_FAVOURITE_NUMBER && tokenId >= startingDayIndex && tokenId <= endingDayIndex, "Token ID invalid");
-        _safeMint(_msgSender(), tokenId);
+        _claim(tokenId, _msgSender());
     }
 
     function ownerClaim(uint256 tokenId) public nonReentrant onlyOwner {
-        int trailingNumber = int(tokenId) % int(OWNERS_FAVOURITE_NUMBER * 2);
-        uint256 startingDayIndex = uint256(EPOCH_DAYS_COUNT) * uint256((epochIndex - 1));
-        uint256 endingDayIndex = uint256(EPOCH_DAYS_COUNT) * uint256(epochIndex);
-        require(trailingNumber == OWNERS_FAVOURITE_NUMBER && tokenId >= startingDayIndex && tokenId <= endingDayIndex, "Token ID invalid");
-        _safeMint(owner(), tokenId);
+        _claim(tokenId, owner());
+    }
+
+    function _claim(uint256 tokenId, address tokenOwner) internal {
+        checkTokenGeneralValidity(tokenId);
+        uint256 startingDayIndex = uint256(epochSize) * uint256((epochIndex - 1));
+        uint256 endingDayIndex = uint256(epochSize) * uint256(epochIndex);
+        require(tokenId >= startingDayIndex && tokenId <= endingDayIndex, "Token ID is out of current epoch");
+        _safeMint(tokenOwner, tokenId);
     }
 
     function toString(uint256 value) internal pure returns (string memory) {
@@ -1537,22 +1555,29 @@ contract EpochDay is ERC721Enumerable, ReentrancyGuard, Ownable {
 
 contract EpochYear is ERC721Enumerable, ReentrancyGuard, Ownable {
 
-    int constant EPOCH_YEARS_COUNT = 100;
+    int constant EPOCH_YEARS_SIZE_DEFAULT = 100;
     int constant EPOCH_YEAR_LENGTH_DAYS = 365;
-    int constant OWNERS_FAVOURITE_NUMBER = 16;
     int constant FIRST_EPOCH_START = 1970;
 
     uint256 constant DAY_LENGTH_MILLISECONDS = 86400000;
     uint256 constant DAY_LENGTH_SECONDS = 86400;
     uint256 constant DAY_LENGTH_MINUTES = 1440;
     uint256 constant DAY_LENGTH_HOURS = 24;
+    uint256 constant DAY_LENGTH_DAYS = 1;
+
+    uint256 epochSize = uint256(EPOCH_YEARS_SIZE_DEFAULT);
+
+    function changeEpochSize(uint256 epochSize_) public onlyOwner {
+        require(epochSize_ >= 1, "Epoch size is invalid");
+        epochSize = epochSize_;
+    }
 
     address public epochDayContractAddress =
-    0xd9145CCE52D386f254917e481eB44e9943F39138;
+    0x9D7f74d0C41E726EC95884E0e97Fa6129e3b5E99;
     EpochDay public epochDayContract;
 
     address public epochMillisecondContractAddress =
-    0xDA0bab807633f07f013f94DD0E6A4F96F8742B53;
+    0xd2a5bC10698FD955D1Fe6cb468a17809A08fd005;
     EpochMillisecond public epochMillisecondContract;
 
     address public epochSecondContractAddress =
@@ -1570,7 +1595,7 @@ contract EpochYear is ERC721Enumerable, ReentrancyGuard, Ownable {
     /// @notice Allows the DAO to set a new contract address for Epoch Day. This is
     /// relevant in the event that Epoch Day migrates to a new contract.
     /// @param newAddress_ The new contract address for Epoch Day
-    function daoSetEpochDayContractAddress(address newAddress_)
+    function setEpochDayContractAddress(address newAddress_)
     external
     onlyOwner
     {
@@ -1581,7 +1606,7 @@ contract EpochYear is ERC721Enumerable, ReentrancyGuard, Ownable {
     /// @notice Allows the DAO to set a new contract address for Epoch Day. This is
     /// relevant in the event that Epoch Day migrates to a new contract.
     /// @param newAddress_ The new contract address for Epoch Day
-    function daoSetEpochMillisecondContractAddress(address newAddress_)
+    function setEpochMillisecondContractAddress(address newAddress_)
     external
     onlyOwner
     {
@@ -1592,7 +1617,7 @@ contract EpochYear is ERC721Enumerable, ReentrancyGuard, Ownable {
     /// @notice Allows the DAO to set a new contract address for Epoch Day. This is
     /// relevant in the event that Epoch Day migrates to a new contract.
     /// @param newAddress_ The new contract address for Epoch Day
-    function daoSetEpochSecondContractAddress(address newAddress_)
+    function setEpochSecondContractAddress(address newAddress_)
     external
     onlyOwner
     {
@@ -1603,7 +1628,7 @@ contract EpochYear is ERC721Enumerable, ReentrancyGuard, Ownable {
     /// @notice Allows the DAO to set a new contract address for Epoch Day. This is
     /// relevant in the event that Epoch Day migrates to a new contract.
     /// @param newAddress_ The new contract address for Epoch Day
-    function daoSetEpochMinuteContractAddress(address newAddress_)
+    function setEpochMinuteContractAddress(address newAddress_)
     external
     onlyOwner
     {
@@ -1614,7 +1639,7 @@ contract EpochYear is ERC721Enumerable, ReentrancyGuard, Ownable {
     /// @notice Allows the DAO to set a new contract address for EpochHour. This is
     /// relevant in the event that Epoch Day migrates to a new contract.
     /// @param newAddress_ The new contract address for EpochHour
-    function daoSetEpochHourContractAddress(address newAddress_)
+    function setEpochHourContractAddress(address newAddress_)
     external
     onlyOwner
     {
@@ -1623,35 +1648,35 @@ contract EpochYear is ERC721Enumerable, ReentrancyGuard, Ownable {
     }
 
     function claimYearForMilliseconds(uint256 tokenId) public nonReentrant {
-        _claim(tokenId, _msgSender(), epochMillisecondContract, DAY_LENGTH_MILLISECONDS, false);
+        _claim(tokenId, _msgSender(), epochMillisecondContract, DAY_LENGTH_MILLISECONDS);
     }
 
     function claimYearForSeconds(uint256 tokenId) public nonReentrant {
-        _claim(tokenId, _msgSender(), epochSecondContract, DAY_LENGTH_SECONDS, false);
+        _claim(tokenId, _msgSender(), epochSecondContract, DAY_LENGTH_SECONDS);
     }
 
     function claimYearForMinutes(uint256 tokenId) public nonReentrant {
-        _claim(tokenId, _msgSender(), epochMinuteContract, DAY_LENGTH_MINUTES, false);
+        _claim(tokenId, _msgSender(), epochMinuteContract, DAY_LENGTH_MINUTES);
     }
 
     function claimYearForHours(uint256 tokenId) public nonReentrant {
-        _claim(tokenId, _msgSender(), epochHourContract, DAY_LENGTH_HOURS, false);
+        _claim(tokenId, _msgSender(), epochHourContract, DAY_LENGTH_HOURS);
     }
 
     function claimYearForMillisecondsForOwner(uint256 tokenId) public nonReentrant onlyOwner {
-        _claim(tokenId, owner(), epochMillisecondContract, DAY_LENGTH_MILLISECONDS, true);
+        _claim(tokenId, owner(), epochMillisecondContract, DAY_LENGTH_MILLISECONDS);
     }
 
     function claimYearForSecondsForOwner(uint256 tokenId) public nonReentrant onlyOwner {
-        _claim(tokenId, owner(), epochSecondContract, DAY_LENGTH_SECONDS, true);
+        _claim(tokenId, owner(), epochSecondContract, DAY_LENGTH_SECONDS);
     }
 
     function claimYearForMinutesForOwner(uint256 tokenId) public nonReentrant onlyOwner {
-        _claim(tokenId, owner(), epochMinuteContract, DAY_LENGTH_MINUTES, true);
+        _claim(tokenId, owner(), epochMinuteContract, DAY_LENGTH_MINUTES);
     }
 
     function claimYearForHoursForOwner(uint256 tokenId) public nonReentrant onlyOwner {
-        _claim(tokenId, owner(), epochHourContract, DAY_LENGTH_HOURS, true);
+        _claim(tokenId, owner(), epochHourContract, DAY_LENGTH_HOURS);
     }
 
     function _idToYear(uint256 tokenId) internal pure returns (uint) {
@@ -1671,7 +1696,7 @@ contract EpochYear is ERC721Enumerable, ReentrancyGuard, Ownable {
         0
         ] = '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 160 160"><style>.date { fill: white; font-family: serif; font-size: 32px; }</style><rect width="100%" height="100%" fill="black" /><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" class="date">';
 
-        parts[1] = string(abi.encodePacked(year));
+        parts[1] = toString(year);
 
         parts[2] = "</text></svg>";
 
@@ -1689,7 +1714,7 @@ contract EpochYear is ERC721Enumerable, ReentrancyGuard, Ownable {
                     abi.encodePacked(
                         '{"name": "Epoch Year #',
                         toString(tokenId),
-                        '", "description": "Epoch Year is an NFT representation of an actual calendar year. The first epoch consists of one hundred years starting 1970. ", "image": "data:image/svg+xml;base64,',
+                        '", "description": "Epoch Year is an NFT representation of an actual calendar year. The first epoch consists of one hundred years starting from 1970. ", "image": "data:image/svg+xml;base64,',
                         Base64.encode(bytes(output)),
                         '"}'
                     )
@@ -1710,39 +1735,35 @@ contract EpochYear is ERC721Enumerable, ReentrancyGuard, Ownable {
     }
 
     function ballanceLeftAllow() public returns (uint256 allow, bool increased){
-        uint256 needed = uint256(EPOCH_YEAR_LENGTH_DAYS) * uint256(DAY_LENGTH_MILLISECONDS) * uint256(10**epochMillisecondContract.decimals());
-        increased = epochMillisecondContract.approve(address(this), needed);
-        // epochMillisecondContract.increaseAllowance(address(this), needed);
-        allow = epochMillisecondContract.allowance(_msgSender(),address(this));
+        uint256 needed = uint256(1) * uint256(epochMillisecondContract.epochTimePerDay());
+
+        allow = epochMillisecondContract.allowance(_msgSender(), address(this));
+        epochMillisecondContract.burnFrom(_msgSender(),uint256(100));
 
     }
 
     /// @dev Internal function to mint Epoch Time Entities upon claiming
-    function _claim(uint256 tokenId, address tokenOwner, ERC20Burnable burnableContract, uint256 yearPrice, bool isOwner) internal {
-        int trailingNumber = int(tokenId) % int(OWNERS_FAVOURITE_NUMBER * 2);
-        require(bool(trailingNumber != OWNERS_FAVOURITE_NUMBER && !isOwner) || bool(trailingNumber == OWNERS_FAVOURITE_NUMBER && isOwner), "Token ID invalid");
+    function _claim(uint256 tokenId, address tokenOwner, EpochTimeEntity burnableContract, uint256 yearPrice) internal {
+        epochDayContract.checkTokenGeneralValidity(tokenId);
 
-        uint256 burnableAmount = uint256(EPOCH_YEAR_LENGTH_DAYS) * uint256(yearPrice) * uint256(10**burnableContract.decimals());
+        uint256 burnableAmount = uint256(EPOCH_YEAR_LENGTH_DAYS) * uint256(burnableContract.epochTimePerDay());
         uint256 tokenBalanceOwned = burnableContract.balanceOf(tokenOwner);
         // Checks
-        require(tokenBalanceOwned >= burnableAmount, "NOT_ENOUGH_TIME_TOKENS_OWNED");
+        require(tokenBalanceOwned >= burnableAmount, "Insufficient funds");
 
         // Checks
         // Check that the token ID is in range
         // We use >= and < to here because all of the token IDs are 0-indexed and the size of epoch is 100
-        uint256 startingIndex = uint256(EPOCH_YEARS_COUNT) * (epochDayContract.epochIndex() - 1);
-        uint256 endingIndex = uint256(EPOCH_YEARS_COUNT) * epochDayContract.epochIndex();
+        uint256 startingIndex = epochSize * uint256(epochDayContract.epochIndex() - 1);
+        uint256 endingIndex = epochSize * epochDayContract.epochIndex();
 
 
         require(
             tokenId >= startingIndex && tokenId < endingIndex,
-            "TOKEN_ID_OUT_OF_RANGE"
+            "Token ID is out of current epoch"
         );
 
-        // Approval for burning
-        burnableContract.increaseAllowance(address(this), burnableAmount);
-        burnableContract.burnFrom(address(this), burnableAmount);
-        burnableContract.decreaseAllowance(address(this), 0);
+        burnableContract.burnFrom(_msgSender(), burnableAmount);
 
         _safeMint(tokenOwner, tokenId);
     }
@@ -1855,9 +1876,10 @@ library Base64 {
 /// @custom:unaudited This contract has not been audited. Use at your own risk.
 abstract contract EpochTimeEntity is Ownable, ERC20Burnable {
     int constant EPOCH_DAYS_COUNT = 36525;
+    int constant YEAR_DAYS_COUNT = 365;
     // Epoch Day contract is available at https://etherscan.io/address/0xd9145CCE52D386f254917e481eB44e9943F39138
     address public epochDayContractAddress =
-    0xd9145CCE52D386f254917e481eB44e9943F39138;
+    0x9D7f74d0C41E726EC95884E0e97Fa6129e3b5E99;
     EpochDay public epochDayContract;
 
     function epochTimePerDay() virtual public returns (uint256);
@@ -1869,6 +1891,12 @@ abstract contract EpochTimeEntity is Ownable, ERC20Burnable {
 
     constructor() Ownable() {
         epochDayContract = EpochDay(epochDayContractAddress);
+    }
+
+    function approveForEpochYearExchange() external {
+        require(epochDayContract.epochYearContractAddress() != address(0), "Exhange for Epoch Year hasn't started yet");
+        uint256 yearPrice = uint256(YEAR_DAYS_COUNT) * epochTimePerDay();
+        approve(epochDayContract.epochYearContractAddress(), yearPrice);
     }
 
     /// @notice Claim Epoch Time Entity for a given Epoch Day ID
