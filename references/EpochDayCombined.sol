@@ -2134,9 +2134,9 @@ contract EpochDay is ERC721Enumerable, ReentrancyGuard, OwnerFavouriteNumberVali
 contract EpochYear is ERC721Enumerable, ReentrancyGuard, OwnerFavouriteNumberValidatable {
 
     int constant EPOCH_YEARS_SIZE = 100;
-    //TODO change this to 3
-    int constant EPOCH_YEAR_LENGTH_DAYS = 1;
     int constant FIRST_EPOCH_START = 1970;
+    //TODO change this to 365
+    int constant EPOCH_YEAR_LENGTH_DAYS = 1;
 
     address public epochDayContractAddress =
     0xd9145CCE52D386f254917e481eB44e9943F39138;
@@ -2333,6 +2333,135 @@ contract EpochYear is ERC721Enumerable, ReentrancyGuard, OwnerFavouriteNumberVal
         epochSecondContract = EpochSecond(epochSecondContractAddress);
         epochMinuteContract = EpochMinute(epochMinuteContractAddress);
         epochHourContract = EpochHour(epochHourContractAddress);
+    }
+}
+
+contract Epoch is ERC721Enumerable, ReentrancyGuard, Ownable {
+
+    uint256 constant EPOCH_PRICE_IN_MILLISECONDS = 3153600000000 * 10 ** 18;
+
+    address public epochDayContractAddress =
+    0xd9145CCE52D386f254917e481eB44e9943F39138;
+    EpochDay public epochDayContract;
+
+    address public epochMillisecondContractAddress =
+    0xd2a5bC10698FD955D1Fe6cb468a17809A08fd005;
+    EpochMillisecond public epochMillisecondContract;
+
+    /// @notice Allows to set a new contract address for Epoch Day. This is
+    /// relevant in the event that Epoch Day migrates to a new contract.
+    /// @param newAddress_ The new contract address for Epoch Day
+    function setEpochDayContractAddress(address newAddress_)
+    external
+    onlyOwner
+    {
+        epochDayContractAddress = newAddress_;
+        epochDayContract = EpochDay(epochDayContractAddress);
+    }
+
+    /// @notice Allows to set a new contract address for Epoch Day. This is
+    /// relevant in the event that Epoch Day migrates to a new contract.
+    /// @param newAddress_ The new contract address for Epoch Day
+    function setEpochMillisecondContractAddress(address newAddress_)
+    external
+    onlyOwner
+    {
+        epochMillisecondContractAddress = newAddress_;
+        epochMillisecondContract = EpochMillisecond(epochMillisecondContractAddress);
+    }
+
+    function claimEpochForMilliseconds(uint256 tokenId) public nonReentrant {
+        _claim(tokenId, epochMillisecondContract);
+    }
+
+    function tokenURI(uint256 tokenId)
+    public
+    view
+    override
+    returns (string memory)
+    {
+        uint256 epoch = epochDayContract.epochIndex();
+        string[3] memory parts;
+        parts[
+        0
+        ] = '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 160 160"><style>.date { fill: white; font-family: serif; font-size: 32px; }</style><rect width="100%" height="100%" fill="black" /><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" class="date">';
+
+        parts[1] = toString(epoch);
+
+        parts[2] = "</text></svg>";
+
+        string memory output = string(
+            abi.encodePacked(
+                parts[0],
+                parts[1],
+                parts[2]
+            )
+        );
+
+        string memory json = Base64.encode(
+            bytes(
+                string(
+                    abi.encodePacked(
+                        '{"name": "Epoch Year #',
+                        toString(tokenId),
+                        '", "description": "Epoch Year is an NFT representation of an actual calendar year. The first epoch consists of one hundred years starting from 1970. ", "image": "data:image/svg+xml;base64,',
+                        Base64.encode(bytes(output)),
+                        '"}'
+                    )
+                )
+            )
+        );
+        output = string(
+            abi.encodePacked("data:application/json;base64,", json)
+        );
+
+        return output;
+    }
+
+    /// @dev Internal function to mint Epoch Time Entities upon claiming
+    function _claim(uint256 tokenId, EpochTimeEntity burnableContract) internal {
+        uint256 tokenBalanceOwned = burnableContract.balanceOf(_msgSender());
+        // Checks
+        require(tokenBalanceOwned >= EPOCH_PRICE_IN_MILLISECONDS, "Insufficient funds");
+
+        // Checks
+        // Check that the token ID is in range
+
+        require(
+            tokenId >= 0 && tokenId < epochDayContract.epochIndex(),
+            "Token ID is out of current epoch"
+        );
+
+        burnableContract.burnFrom(_msgSender(), EPOCH_PRICE_IN_MILLISECONDS);
+
+        _safeMint(_msgSender(), tokenId);
+    }
+
+    function toString(uint256 value) internal pure returns (string memory) {
+        // Inspired by OraclizeAPI's implementation - MIT license
+        // https://github.com/oraclize/ethereum-api/blob/b42146b063c7d6ee1358846c198246239e9360e8/oraclizeAPI_0.4.25.sol
+
+        if (value == 0) {
+            return "0";
+        }
+        uint256 temp = value;
+        uint256 digits;
+        while (temp != 0) {
+            digits++;
+            temp /= 10;
+        }
+        bytes memory buffer = new bytes(digits);
+        while (value != 0) {
+            digits -= 1;
+            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
+            value /= 10;
+        }
+        return string(buffer);
+    }
+
+    constructor() ERC721("Epoch", "EPOCH") Ownable() {
+        epochDayContract = EpochDay(epochDayContractAddress);
+        epochMillisecondContract = EpochMillisecond(epochMillisecondContractAddress);
     }
 }
 
