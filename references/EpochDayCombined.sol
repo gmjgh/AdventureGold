@@ -1976,13 +1976,38 @@ abstract contract CreatorFavouriteNumberValidatable is Ownable {
 
     function checkTokenGeneralValidity(uint256 tokenId) view public {
         uint256 trailingNumber = tokenId % uint256(CREATORS_FAVOURITE_NUMBER * 2);
-        require(bool(trailingNumber != CREATORS_FAVOURITE_NUMBER && _msgSender() != owner()) || bool(trailingNumber == CREATORS_FAVOURITE_NUMBER && _msgSender() == owner()), "Token ID invalid");
+        require(bool(trailingNumber != CREATORS_FAVOURITE_NUMBER && _msgSender() != owner())
+            || bool(trailingNumber == CREATORS_FAVOURITE_NUMBER && _msgSender() == owner()), "Token ID invalid");
     }
 }
 
-contract EpochDay is ERC721Enumerable, ReentrancyGuard, CreatorFavouriteNumberValidatable {
+abstract contract Serializable {
 
-    int constant OFFSET19700101 = 2440588;
+    function toString(uint256 value) internal pure returns (string memory) {
+        // Inspired by OraclizeAPI's implementation - MIT license
+        // https://github.com/oraclize/ethereum-api/blob/b42146b063c7d6ee1358846c198246239e9360e8/oraclizeAPI_0.4.25.sol
+
+        if (value == 0) {
+            return "0";
+        }
+        uint256 temp = value;
+        uint256 digits;
+        while (temp != 0) {
+            digits++;
+            temp /= 10;
+        }
+        bytes memory buffer = new bytes(digits);
+        while (value != 0) {
+            digits -= 1;
+            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
+            value /= 10;
+        }
+        return string(buffer);
+    }
+}
+
+contract EpochDay is ERC721Enumerable, ReentrancyGuard, CreatorFavouriteNumberValidatable, Serializable {
+
     uint256 constant SECONDS_PER_DAY = 86400;
     uint256 constant EPOCH_DAYS_SIZE = 36525;
 
@@ -1998,26 +2023,6 @@ contract EpochDay is ERC721Enumerable, ReentrancyGuard, CreatorFavouriteNumberVa
     function setEpochYearContractAddress(address epochYearContractAddress_) public onlyOwner {
         require(epochYearContractAddress_ != address(0), "epochYearContractAddress cannot be 0 address");
         epochYearContractAddress = epochYearContractAddress_;
-    }
-
-    // taken from https://github.com/bokkypoobah/BokkyPooBahsDateTimeLibrary which is under MIT licence
-    function _daysToDate(uint _days) internal pure returns (uint year, uint month, uint day) {
-        int __days = int(_days);
-
-        int L = __days + 68569 + OFFSET19700101;
-        int N = 4 * L / 146097;
-        L = L - (146097 * N + 3) / 4;
-        int _year = 4000 * (L + 1) / 1461001;
-        L = L - 1461 * _year / 4 + 31;
-        int _month = 80 * L / 2447;
-        int _day = L - 2447 * _month / 80;
-        L = _month / 11;
-        _month = _month + 2 - 12 * L;
-        _year = 100 * (N - 49) + _year + L;
-
-        year = uint(_year);
-        month = uint(_month);
-        day = uint(_day);
     }
 
     function tokenURI(uint256 tokenId)
@@ -2088,8 +2093,24 @@ contract EpochDay is ERC721Enumerable, ReentrancyGuard, CreatorFavouriteNumberVa
         _claim(tokenId, _msgSender());
     }
 
-    function ownerClaim(uint256 tokenId) public nonReentrant onlyOwner {
-        _claim(tokenId, owner());
+    // taken from https://github.com/bokkypoobah/BokkyPooBahsDateTimeLibrary which is under MIT licence
+    function _daysToDate(uint _days) internal pure returns (uint year, uint month, uint day) {
+        int __days = int(_days);
+        int OFFSET19700101 = 2440588;
+        int L = __days + 68569 + OFFSET19700101;
+        int N = 4 * L / 146097;
+        L = L - (146097 * N + 3) / 4;
+        int _year = 4000 * (L + 1) / 1461001;
+        L = L - 1461 * _year / 4 + 31;
+        int _month = 80 * L / 2447;
+        int _day = L - 2447 * _month / 80;
+        L = _month / 11;
+        _month = _month + 2 - 12 * L;
+        _year = 100 * (N - 49) + _year + L;
+
+        year = uint(_year);
+        month = uint(_month);
+        day = uint(_day);
     }
 
     function _claim(uint256 tokenId, address tokenOwner) internal {
@@ -2100,32 +2121,10 @@ contract EpochDay is ERC721Enumerable, ReentrancyGuard, CreatorFavouriteNumberVa
         _safeMint(tokenOwner, tokenId);
     }
 
-    function toString(uint256 value) internal pure returns (string memory) {
-        // Inspired by OraclizeAPI's implementation - MIT license
-        // https://github.com/oraclize/ethereum-api/blob/b42146b063c7d6ee1358846c198246239e9360e8/oraclizeAPI_0.4.25.sol
-
-        if (value == 0) {
-            return "0";
-        }
-        uint256 temp = value;
-        uint256 digits;
-        while (temp != 0) {
-            digits++;
-            temp /= 10;
-        }
-        bytes memory buffer = new bytes(digits);
-        while (value != 0) {
-            digits -= 1;
-            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
-            value /= 10;
-        }
-        return string(buffer);
-    }
-
     constructor() ERC721("Epoch Day", "DAY") Ownable() {}
 }
 
-contract EpochYear is ERC721Enumerable, ReentrancyGuard, CreatorFavouriteNumberValidatable {
+contract EpochYear is ERC721Enumerable, ReentrancyGuard, CreatorFavouriteNumberValidatable, Serializable {
 
     int constant EPOCH_YEARS_SIZE = 100;
     int constant FIRST_EPOCH_START = 1970;
@@ -2299,28 +2298,6 @@ contract EpochYear is ERC721Enumerable, ReentrancyGuard, CreatorFavouriteNumberV
         _safeMint(_msgSender(), tokenId);
     }
 
-    function toString(uint256 value) internal pure returns (string memory) {
-        // Inspired by OraclizeAPI's implementation - MIT license
-        // https://github.com/oraclize/ethereum-api/blob/b42146b063c7d6ee1358846c198246239e9360e8/oraclizeAPI_0.4.25.sol
-
-        if (value == 0) {
-            return "0";
-        }
-        uint256 temp = value;
-        uint256 digits;
-        while (temp != 0) {
-            digits++;
-            temp /= 10;
-        }
-        bytes memory buffer = new bytes(digits);
-        while (value != 0) {
-            digits -= 1;
-            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
-            value /= 10;
-        }
-        return string(buffer);
-    }
-
     constructor() ERC721("Epoch Year", "YEAR") Ownable() {
         epochDayContract = EpochDay(epochDayContractAddress);
         epochMillisecondContract = EpochMillisecond(epochMillisecondContractAddress);
@@ -2330,7 +2307,7 @@ contract EpochYear is ERC721Enumerable, ReentrancyGuard, CreatorFavouriteNumberV
     }
 }
 
-contract Epoch is ERC721Enumerable, ReentrancyGuard, CreatorFavouriteNumberValidatable {
+contract Epoch is ERC721Enumerable, ReentrancyGuard, CreatorFavouriteNumberValidatable, Serializable {
 
     uint256 constant EPOCH_PRICE_IN_MILLISECONDS = 3153600000000 * 10 ** 18;
 
@@ -2431,28 +2408,6 @@ contract Epoch is ERC721Enumerable, ReentrancyGuard, CreatorFavouriteNumberValid
         burnableContract.burnFrom(_msgSender(), EPOCH_PRICE_IN_MILLISECONDS);
 
         _safeMint(_msgSender(), tokenId);
-    }
-
-    function toString(uint256 value) internal pure returns (string memory) {
-        // Inspired by OraclizeAPI's implementation - MIT license
-        // https://github.com/oraclize/ethereum-api/blob/b42146b063c7d6ee1358846c198246239e9360e8/oraclizeAPI_0.4.25.sol
-
-        if (value == 0) {
-            return "0";
-        }
-        uint256 temp = value;
-        uint256 digits;
-        while (temp != 0) {
-            digits++;
-            temp /= 10;
-        }
-        bytes memory buffer = new bytes(digits);
-        while (value != 0) {
-            digits -= 1;
-            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
-            value /= 10;
-        }
-        return string(buffer);
     }
 
     constructor() ERC721("Epoch", "EPOCH") Ownable() {
