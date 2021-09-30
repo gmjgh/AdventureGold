@@ -1414,143 +1414,6 @@ abstract contract ERC721Enumerable is ERC721, IERC721Enumerable {
     }
 }
 
-contract EpochDay is ERC721Enumerable, ReentrancyGuard, Ownable {
-
-    int constant OFFSET19700101 = 2440588;
-    int constant SECONDS_PER_DAY = 86400;
-    int constant OWNERS_FAVOURITE_NUMBER = 16;
-    int constant EPOCH_DAYS_COUNT = 36525;
-
-    uint public epochIndex = 1;
-
-    function daoSetEpoch(uint epochIndex_) public onlyOwner {
-        require(epochIndex_ >= 1, "Epoch is invalid");
-        epochIndex = epochIndex_;
-    }
-
-    // taken from https://github.com/bokkypoobah/BokkyPooBahsDateTimeLibrary which is under MIT licence
-    function _daysToDate(uint _days) internal pure returns (uint year, uint month, uint day) {
-        int __days = int(_days);
-
-        int L = __days + 68569 + OFFSET19700101;
-        int N = 4 * L / 146097;
-        L = L - (146097 * N + 3) / 4;
-        int _year = 4000 * (L + 1) / 1461001;
-        L = L - 1461 * _year / 4 + 31;
-        int _month = 80 * L / 2447;
-        int _day = L - 2447 * _month / 80;
-        L = _month / 11;
-        _month = _month + 2 - 12 * L;
-        _year = 100 * (N - 49) + _year + L;
-
-        year = uint(_year);
-        month = uint(_month);
-        day = uint(_day);
-    }
-
-    function tokenURI(uint256 tokenId)
-    public
-    pure
-    override
-    returns (string memory)
-    {
-        (uint year,uint month,uint day) = _daysToDate(tokenId);
-        string[5] memory parts;
-        parts[
-        0
-        ] = '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 160 160"><style>.date { fill: white; font-family: serif; font-size: 32px; }</style> <style>.timestamp { fill: white; font-family: serif; font-size: 16px; }</style><rect width="100%" height="100%" fill="black" /><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" class="date">';
-
-        parts[1] = string(
-            abi.encodePacked(
-                year,
-                '.',
-                month,
-                '.',
-                day
-            )
-        );
-
-        parts[2] = '</text><text x="50%" y="95%" dominant-baseline="middle" text-anchor="middle" class="timestamp">';
-
-        parts[3] = string(
-            abi.encodePacked(
-                uint(tokenId) * uint(SECONDS_PER_DAY)
-            )
-        );
-
-        parts[4] = "</text></svg>";
-
-        string memory output = string(
-            abi.encodePacked(
-                parts[0],
-                parts[1],
-                parts[2],
-                parts[3],
-                parts[4]
-            )
-        );
-
-        string memory json = Base64.encode(
-            bytes(
-                string(
-                    abi.encodePacked(
-                        '{"name": "Epoch Day #',
-                        toString(tokenId),
-                        '", "description": "Epoch Day is an NFT representation of an actual calendar day. The first epoch starts at 1970.1.1 and ends at 2070.1.1 covering exactly one hundred years and one day. ", "image": "data:image/svg+xml;base64,',
-                        Base64.encode(bytes(output)),
-                        '"}'
-                    )
-                )
-            )
-        );
-        output = string(
-            abi.encodePacked("data:application/json;base64,", json)
-        );
-
-        return output;
-    }
-
-    function claim(uint256 tokenId) public nonReentrant {
-        int trailingNumber = int(tokenId) % int(OWNERS_FAVOURITE_NUMBER * 2);
-        uint256 startingDayIndex = uint256(EPOCH_DAYS_COUNT) * uint256((epochIndex - 1));
-        uint256 endingDayIndex = uint256(EPOCH_DAYS_COUNT) * uint256(epochIndex);
-        require(trailingNumber != OWNERS_FAVOURITE_NUMBER && tokenId >= startingDayIndex && tokenId <= endingDayIndex, "Token ID invalid");
-        _safeMint(_msgSender(), tokenId);
-    }
-
-    function ownerClaim(uint256 tokenId) public nonReentrant onlyOwner {
-        int trailingNumber = int(tokenId) % int(OWNERS_FAVOURITE_NUMBER * 2);
-        uint256 startingDayIndex = uint256(EPOCH_DAYS_COUNT) * uint256((epochIndex - 1));
-        uint256 endingDayIndex = uint256(EPOCH_DAYS_COUNT) * uint256(epochIndex);
-        require(trailingNumber == OWNERS_FAVOURITE_NUMBER && tokenId >= startingDayIndex && tokenId <= endingDayIndex, "Token ID invalid");
-        _safeMint(owner(), tokenId);
-    }
-
-    function toString(uint256 value) internal pure returns (string memory) {
-        // Inspired by OraclizeAPI's implementation - MIT license
-        // https://github.com/oraclize/ethereum-api/blob/b42146b063c7d6ee1358846c198246239e9360e8/oraclizeAPI_0.4.25.sol
-
-        if (value == 0) {
-            return "0";
-        }
-        uint256 temp = value;
-        uint256 digits;
-        while (temp != 0) {
-            digits++;
-            temp /= 10;
-        }
-        bytes memory buffer = new bytes(digits);
-        while (value != 0) {
-            digits -= 1;
-            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
-            value /= 10;
-        }
-        return string(buffer);
-    }
-
-    constructor() ERC721("Epoch Day", "DAY") Ownable() {}
-}
-
 /// [MIT License]
 /// @title Base64
 /// @notice Provides a function for encoding some bytes in base64
@@ -1621,3 +1484,157 @@ library Base64 {
         return string(result);
     }
 }
+
+abstract contract CreatorFavouriteNumberValidatable is Ownable {
+    uint256 constant CREATORS_FAVOURITE_NUMBER = 16;
+
+    function checkTokenGeneralValidity(uint256 tokenId) view public {
+        uint256 trailingNumber = tokenId % uint256(CREATORS_FAVOURITE_NUMBER * 2);
+        require(bool(trailingNumber != CREATORS_FAVOURITE_NUMBER && _msgSender() != owner())
+            || bool(trailingNumber == CREATORS_FAVOURITE_NUMBER && _msgSender() == owner()), "Token ID invalid");
+    }
+}
+
+abstract contract Serializable {
+
+    function toString(uint256 value) internal pure returns (string memory) {
+        // Inspired by OraclizeAPI's implementation - MIT license
+        // https://github.com/oraclize/ethereum-api/blob/b42146b063c7d6ee1358846c198246239e9360e8/oraclizeAPI_0.4.25.sol
+
+        if (value == 0) {
+            return "0";
+        }
+        uint256 temp = value;
+        uint256 digits;
+        while (temp != 0) {
+            digits++;
+            temp /= 10;
+        }
+        bytes memory buffer = new bytes(digits);
+        while (value != 0) {
+            digits -= 1;
+            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
+            value /= 10;
+        }
+        return string(buffer);
+    }
+}
+
+contract RGB is ERC721Enumerable, ReentrancyGuard, CreatorFavouriteNumberValidatable, Serializable {
+
+    uint256 constant SECONDS_PER_DAY = 86400;
+    uint256 constant EPOCH_DAYS_SIZE = 36525;
+
+    address public epochYearContractAddress = address(0);
+
+    uint256 public epochIndex = 1;
+
+    function changeEpochIndex(uint256 epochIndex_) public onlyOwner {
+        require(epochIndex_ >= 1, "Epoch index is invalid");
+        epochIndex = epochIndex_;
+    }
+
+    function setEpochYearContractAddress(address epochYearContractAddress_) public onlyOwner {
+        require(epochYearContractAddress_ != address(0), "epochYearContractAddress cannot be 0 address");
+        epochYearContractAddress = epochYearContractAddress_;
+    }
+
+    function tokenURI(uint256 tokenId)
+    public
+    pure
+    override
+    returns (string memory)
+    {
+        (uint year,uint month,uint day) = _daysToDate(tokenId);
+        string[5] memory parts;
+        parts[
+        0
+        ] = '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 160 160"><style>.date { fill: white; font-family: serif; font-size: 32px; }</style> <style>.timestamp { fill: white; font-family: serif; font-size: 16px; }</style><rect width="100%" height="100%" fill="black" /><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" class="date">';
+
+        parts[1] = string(
+            abi.encodePacked(
+                toString(year),
+                '.',
+                toString(month),
+                '.',
+                toString(day)
+            )
+        );
+
+        parts[2] = '</text><text x="50%" y="95%" dominant-baseline="middle" text-anchor="middle" class="timestamp">';
+
+        parts[3] = string(
+            abi.encodePacked(
+                '(',
+                toString(uint256(tokenId) * uint256(SECONDS_PER_DAY)),
+                ')'
+            )
+        );
+
+        parts[4] = "</text></svg>";
+
+        string memory output = string(
+            abi.encodePacked(
+                parts[0],
+                parts[1],
+                parts[2],
+                parts[3],
+                parts[4]
+            )
+        );
+
+        string memory json = Base64.encode(
+            bytes(
+                string(
+                    abi.encodePacked(
+                        '{"name": "Epoch Day #',
+                        toString(tokenId),
+                        '", "description": "Epoch Day is an NFT representation of an actual calendar day. The first epoch starts at 1970.1.1 and ends at 2070.1.1 covering exactly one hundred years and one day. ", "image": "data:image/svg+xml;base64,',
+                        Base64.encode(bytes(output)),
+                        '"}'
+                    )
+                )
+            )
+        );
+        output = string(
+            abi.encodePacked("data:application/json;base64,", json)
+        );
+
+        return output;
+    }
+
+    function claim(uint256 tokenId) public nonReentrant {
+        _claim(tokenId, _msgSender());
+    }
+
+    // taken from https://github.com/bokkypoobah/BokkyPooBahsDateTimeLibrary which is under MIT licence
+    function _daysToDate(uint _days) internal pure returns (uint year, uint month, uint day) {
+        int __days = int(_days);
+        int OFFSET19700101 = 2440588;
+        int L = __days + 68569 + OFFSET19700101;
+        int N = 4 * L / 146097;
+        L = L - (146097 * N + 3) / 4;
+        int _year = 4000 * (L + 1) / 1461001;
+        L = L - 1461 * _year / 4 + 31;
+        int _month = 80 * L / 2447;
+        int _day = L - 2447 * _month / 80;
+        L = _month / 11;
+        _month = _month + 2 - 12 * L;
+        _year = 100 * (N - 49) + _year + L;
+
+        year = uint(_year);
+        month = uint(_month);
+        day = uint(_day);
+    }
+
+    function _claim(uint256 tokenId, address tokenOwner) internal {
+        checkTokenGeneralValidity(tokenId);
+        uint256 startingDayIndex = EPOCH_DAYS_SIZE * uint256((epochIndex - 1));
+        uint256 endingDayIndex = EPOCH_DAYS_SIZE * uint256(epochIndex);
+        require(tokenId >= startingDayIndex && tokenId <= endingDayIndex, "Token ID is out of current epoch");
+        _safeMint(tokenOwner, tokenId);
+    }
+
+    constructor() ERC721("Epoch Day", "DAY") Ownable() {}
+}
+
