@@ -638,52 +638,113 @@ abstract contract BEP20Burnable is Context, BEP20 {
 
 /// @custom:unaudited This contract has not been audited. Use at your own risk.
 contract ThroneGelt is Context, Ownable, BEP20, BEP20Burnable {
-    // Give out 40,000 Thrones for every mine event
-    uint256 private _claimableAmount = 40000 * (10 ** decimals());
+    // Give out 10 Thrones for mine event
+    uint256 private _ratlingClaimableAmount = 10 * (10 ** decimals());
+    uint256 public ratlingsToClaim = 1000;
+    // Give out 40,000 Thrones for mine event
+    uint256 private _commonerClaimableAmount = 40000 * (10 ** decimals());
+    uint256 public commonersToClaim = 40000;
+    // Give out 66,666 Thrones for mine event
+    uint256 private _guardClaimableAmount = 66666 * (10 ** decimals());
+    uint256 public guardsToClaim = 15000;
+    // Give out 400,000 Thrones for mine event
+    uint256 private _astartesClaimableAmount = _maxAmount / 10000;
+    uint256 public astartesToClaim = 1000;
+    // Give out 40,000,000 Thrones for mine event
+    uint256 private _primarchsClaimableAmount = _maxAmount / 100;
+    uint256 public primarchsToClaim = 20;
+    // Give out 160,000,000 Thrones for mine event
+    uint256 private _emperorClaimableAmount = _maxAmount / 25;
+    uint256 public emperorsToClaim = 1;
 
     // Give out 4,000,000,000 Thrones for the complete airdrop
     uint256 private _maxAmount = 4000000000 * (10 ** decimals());
 
-    uint256 public isSacrificeEnabled = 1;
+    // Give out 40,000,000,000 Thrones for the expanded exchange
+    uint256 private _expansionAmount = 40000000000 * (10 ** decimals());
 
-    constructor() Ownable() ERC20("W40k Throne Gelt", "WTGC") {
-        _mint(_msgSender(), _maxAmount * 0.04);
+    uint256 public hasExpansionStarted = 0;
+    uint256 public expansionRate = 3;
+    uint256 public expansionLimit = 0;
+
+    mapping(address => uint256) public primarchs;
+    address[20] public primarchsClaimed;
+    address[] astartesClaimed;
+    address[] guardsClaimed;
+    mapping(address => uint256) public xenosAssimilated;
+
+    constructor() Ownable() ERC20("Imperium Throne Gelt", "THRONE") {
+        _claim(_msgSender(), _emperorClaimableAmount);
     }
 
-    /// @notice Claim W40k Throne Gelts
+    /// @notice Claim Imperium Throne Gelts
     function claim() external {
-        require(totalSupply() <= (_maxAmount * 0.44 - _claimableAmount), "You can only sacrifice now");
-        _claim(_claimableAmount);
+        string alreadyClaimed = "You have already claimed";
+        require(balanceOf(_msgSender()) == 0, alreadyClaimed);
+        require(ratlingsToClaim > 0, "Airdrop has ended");
+        uint256 amount = 0;
+        if (owner() == _msgSender() && emperorsToClaim > 0) {
+            emperorsToClaim -= 1;
+            amount = _emperorClaimableAmount;
+        } else if (primarchs[_msgSender()] != 0 && primarchsToClaim > 0) {
+            primarchsToClaim -= 1;
+            primarchs[primarchs[_msgSender()] - 1] = _msgSender();
+            amount = primarchs[_msgSender()] == 20 ? _primarchsClaimableAmount * 2 : _primarchsClaimableAmount;
+        } else if (astartesToClaim > 0) {
+            astartesToClaim -= 1;
+            astartesClaimed.push(_msgSender());
+            amount = _astartesClaimableAmount;
+        } else if (guardsToClaim > 0) {
+            guardsToClaim -= 1;
+            guardsClaimed.push(_msgSender());
+            amount = _guardClaimableAmount;
+        } else if (commonersToClaim > 0) {
+            commonersToClaim -= 1;
+            amount = _commonerClaimableAmount;
+        } else if (ratlingsToClaim > 0) {
+            ratlingsToClaim -= 1;
+            amount = _ratlingClaimableAmount;
+        }
+        _claim(_msgSender(), amount);
     }
 
-    /// @notice Sarcifice from 40,000 to 400,000 of your BEP20Burnable token with 18 decimals, total supply of which is less than or equal to 4,000,000,000
-    ///to receive the exact amount of W40k Throne Gelts
-    function sacrifice(address tokenAddress, uint256 amount) external {
-        require(totalSupply() >= _maxAmount * 0.44 && totalSupply() <= (_maxAmount * 0.84 - amount), "Cannot sacrifice");
-        require(isSacrificeEnabled == 1, "Cannot sacrifice");
-        require(tokenAddress != address(0), "Cannot sacrifice from 0 address");
+    /// @notice Claim from 40,000 to 400,000 of Imperium Throne Gelts.
+    /// To do that you need to burn amount of custom BEP20Burnable token based on expansionRate
+    /// BEP20Burnable token should be with 18 decimals and total supply <= 4,000,000,000
+    /// 25 percent of claimed amount will be granted to Emperor and primarchs
+    function assimilate(address tokenAddress, uint256 amount) external {
+        require(hasExpansionStarted == 1, "Expansion is stopped");
+        require(totalSupply() <= _maxAmount + _expansionAmount, "Expansion has ended");
+        require(totalSupply() >= _maxAmount, "Expansion is not possible yet");
+        require(totalSupply() <= _maxAmount + expansionLimit, "Expansion is paused");
+        require(tokenAddress != address(0), "Cannot assimilate from 0 address");
 
         BEP20 token = BEP20(tokenAddress);
         require(token.totalSupply() <= totalSupply(), "Incorrect token total supply");
-        require(token.decimals() <= decimals(), "Incorrect token total supply");
-        require(amount >= _claimableAmount, "Incorrect token amount");
+        require(token.decimals() == decimals(), "Incorrect token total supply");
+        uint256 anticipatedAmount = amount / expansionRate;
+        require(anticipatedAmount >= _commonerClaimableAmount, "Incorrect token amount");
+        require(anticipatedAmount <= _astartesClaimableAmount, "Incorrect token amount");
+        uint256 emperorShare = anticipatedAmount / 25;
+        uint256 primarchShare = anticipatedAmount / 100;
 
         uint256 balanceOfToken = token.balanceOf(_msgSender());
         require(balanceOfToken >= amount, "Insufficient funds");
 
         BEP20Burnable(tokenAddress).burnFrom(_msgSender(), amount);
-        _claim(amount);
-    }
-
-    /// @dev Award someone W40k Throne Gelts
-    function award(address userAddress, uint256 amount) external onlyOwner {
-        require(totalSupply() >= _maxAmount * 0.84 && totalSupply() <= (_maxAmount - amount), "Cannot award");
-        _mint(_msgSender(), amount);
+        _claim(owner(), emperorShare);
+        for (uint256 i = 0; i < primarchsClaimed.length; i++) {
+            _claim(
+                primarchsClaimed[i],
+                i == 19 ? primarchShare * 2 : primarchShare
+            );
+        }
+        _claim(_msgSender(), anticipatedAmount - emperorShare - 21 * primarchShare);
     }
 
     /// @dev Internal function to mint Throne Gelts upon claiming
-    function _claim(uint256 amountToMint) internal {
-        _mint(_msgSender(), mintAmount);
+    function _claim(address userAddress, uint256 amountToMint) internal {
+        _mint(userAddress, amountToMint);
     }
 
 }
