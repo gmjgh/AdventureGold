@@ -585,7 +585,7 @@ contract ThroneGelt is Ownable, ERC20Burnable {
     uint256 constant DEFAULT_EXPANSION_LIMIT = 40000000000;
     uint256 constant DEFAULT_MAX_AMOUNT = 4000000000;
     // Give out 4,000,000,000 Thrones for the complete airdrop
-    uint256 private _maxAmount = _withDecimals(DEFAULT_MAX_AMOUNT);
+    uint256 public airdropAmount = _withDecimals(DEFAULT_MAX_AMOUNT);
 
     // Give out 10 Thrones for mine event
     uint256 private _ratlingClaimableAmount = _withDecimals(10);
@@ -600,55 +600,61 @@ contract ThroneGelt is Ownable, ERC20Burnable {
     uint256 public guardsToClaim = 15000;
 
     // Give out 400,000 Thrones for mine event
-    uint256 private _astartesClaimableAmount = _maxAmount / 10000;
+    uint256 private _astartesClaimableAmount = airdropAmount / 10000;
     uint256 public astartesToClaim = 1000;
 
     // Give out 40,000,000 Thrones for mine event
-    uint256 private _primarchsClaimableAmount = _maxAmount / 100;
-    uint256 public primarchsToClaim = 20;
-    uint256 public primarchsToDiscover = 20;
+    uint256 private _primarchsClaimableAmount = airdropAmount / 100;
+    uint256 private _primarchsToClaim = 20;
+    uint256 private _primarchsToDiscover = 20;
 
     // Give out 160,000,000 Thrones for mine event
-    uint256 private _emperorClaimableAmount = _maxAmount / 25;
+    uint256 private _emperorClaimableAmount = airdropAmount / 25;
 
-    uint256 public hasExpansionStarted = 0;
+    bool public hasExpansionStarted = false;
     uint256 public expansionRate = 3;
     uint256 public expansionLimit = _withDecimals(DEFAULT_EXPANSION_LIMIT);
 
-    mapping(address => uint256) public primarchs;
-    address emperorClaimed;
-    address[20] primarchsClaimed;
+    mapping(address => uint256) public primarchsDiscovered;
+    address public emperorClaimed;
+    address[20] public primarchsClaimed;
     mapping(address => uint256) public airdropClaimed;
+    address[] public airdropClaimedAdresses;
     mapping(address => uint256) public xenosAssimilated;
+    address[] public xenosAssimilatedAdresses;
 
-    constructor() Ownable() ERC20("Imperium Throne Gelt", "THRONE") {
+    constructor() Ownable() ERC20("Imperium Throne Gelt", "THRN") {
         emperorClaimed = _msgSender();
         airdropClaimed[_msgSender()] = _emperorClaimableAmount;
+        airdropClaimedAdresses.push(_msgSender());
         _mint(_msgSender(), airdropClaimed[_msgSender()]);
     }
 
     /// @notice Claim Imperium Throne Gelts
     function claim() external {
         require(airdropClaimed[_msgSender()] == 0, "You have already claimed");
-        require(ratlingsToClaim > 0, "Airdrop has ended");
-        if (primarchs[_msgSender()] != 0 && primarchsToClaim > 0) {
-            primarchsToClaim -= 1;
-            primarchsClaimed[primarchs[_msgSender()] - 1] = _msgSender();
-            airdropClaimed[_msgSender()] = primarchs[_msgSender()] == 20 ? _primarchsClaimableAmount * 2 : _primarchsClaimableAmount;
+        require(totalSupply() < airdropAmount, "Airdrop has ended");
+        uint256 amount = 0;
+        if (primarchsDiscovered[_msgSender()] != 0 && _primarchsToClaim > 0) {
+            _primarchsToClaim -= 1;
+            primarchsClaimed[primarchsDiscovered[_msgSender()] - 1] = _msgSender();
+            amount = primarchsDiscovered[_msgSender()] == 20 ? _primarchsClaimableAmount * 2 : _primarchsClaimableAmount;
         } else if (astartesToClaim > 0) {
             astartesToClaim -= 1;
-            airdropClaimed[_msgSender()] = _astartesClaimableAmount;
+            amount = _astartesClaimableAmount;
         } else if (guardsToClaim > 0) {
             guardsToClaim -= 1;
-            airdropClaimed[_msgSender()] = _guardClaimableAmount;
+            amount = _guardClaimableAmount;
         } else if (commonersToClaim > 0) {
             commonersToClaim -= 1;
-            airdropClaimed[_msgSender()] = _commonerClaimableAmount;
+            amount = _commonerClaimableAmount;
         } else if (ratlingsToClaim > 0) {
             ratlingsToClaim -= 1;
-            airdropClaimed[_msgSender()] = _ratlingClaimableAmount;
+            amount = _ratlingClaimableAmount;
         }
-        _claim(_msgSender(), airdropClaimed[_msgSender()]);
+        airdropClaimed[_msgSender()] = amount;
+        airdropClaimedAdresses.push(_msgSender());
+        _mint(_msgSender(), airdropClaimed[_msgSender()]);
     }
 
     /// @notice Claim from 40,000 to 400,000 of Imperium Throne Gelts.
@@ -658,14 +664,13 @@ contract ThroneGelt is Ownable, ERC20Burnable {
     /// @param assimilationAmountAbsolute Assimilation amount without decimals, if 0 - defaults to 40,000
     function assimilateXenosToken(address xenosTokenAddress, uint256 assimilationAmountAbsolute) external {
         require(xenosTokenAddress != address(0), "Cannot assimilate from 0 address");
-        require(hasExpansionStarted == 1, "Expansion is stopped");
-        require(totalSupply() >= _maxAmount && totalSupply() <= _maxAmount + expansionLimit, "Expansion out of bound");
+        require(hasExpansionStarted, "Expansion is stopped");
         uint256 assimilationAmount = _withDecimals(assimilationAmountAbsolute);
         ERC20Burnable xenosToken = ERC20Burnable(xenosTokenAddress);
         (uint256 min, uint256 max) = _calcAssimilationBounds(xenosToken);
         require(assimilationAmount >= min && assimilationAmount <= max, "Incorrect token amount");
-        uint256 anticipatedAmount = _maxAmount * assimilationAmount / xenosToken.totalSupply() / expansionRate;
-
+        uint256 anticipatedAmount = airdropAmount * assimilationAmount / xenosToken.totalSupply() / expansionRate;
+        require(totalSupply() >= airdropAmount && (totalSupply() + anticipatedAmount) <= (airdropAmount + expansionLimit), "Expansion out of bound");
         uint256 emperorShare = anticipatedAmount / 25;
         uint256 primarchShare = anticipatedAmount / 100;
 
@@ -673,17 +678,21 @@ contract ThroneGelt is Ownable, ERC20Burnable {
         require(balanceOfToken >= assimilationAmount, "Insufficient funds");
 
         xenosToken.burnFrom(_msgSender(), assimilationAmount);
-        xenosAssimilated[xenosTokenAddress] += assimilationAmount;
-        _claim(emperorClaimed, emperorShare);
+        if (xenosAssimilated[xenosTokenAddress] == 0){
+            xenosAssimilatedAdresses.push(xenosTokenAddress);
+        }
+        xenosAssimilated[xenosTokenAddress] = xenosAssimilated[xenosTokenAddress] + assimilationAmount;
+        _mint(emperorClaimed, emperorShare);
         for (uint256 i = 0; i < primarchsClaimed.length; i++) {
             if (primarchsClaimed[i] != address(0)) {
-                _claim(
+                _mint(
                     primarchsClaimed[i],
                     i == 19 ? primarchShare * 2 : primarchShare
-                );}
+                );
+            }
         }
         uint256 amountToMint = anticipatedAmount - 25 * primarchShare;
-        _claim(_msgSender(), amountToMint);
+        _mint(_msgSender(), amountToMint);
     }
 
     function calculateXenosTokenAssimilationBounds(address xenosTokenAddress) external view returns (uint256 min, uint256 max) {
@@ -696,21 +705,21 @@ contract ThroneGelt is Ownable, ERC20Burnable {
     function discoverPrimarch(address primarchAddress, uint256 legionNumber) external onlyOwner {
         require(primarchAddress != address(0), "Zero address cannot be primarch");
         require(legionNumber > 0 && legionNumber <= 20, "There are exactly 20 legions");
-        require(primarchsToDiscover > 0, "There are only 20 primarchs");
-        require(primarchs[primarchAddress] == 0, "This primarch is already discovered");
+        require(_primarchsToDiscover > 0, "There are only 20 primarchs");
+        require(primarchsDiscovered[primarchAddress] == 0, "This primarch is already discovered");
 
-        primarchsToDiscover -= 1;
-        primarchs[primarchAddress] = legionNumber;
+        _primarchsToDiscover -= 1;
+        primarchsDiscovered[primarchAddress] = legionNumber;
     }
 
     /// @notice Emperor starts the expansion
     function startExpansion() external onlyOwner {
-        hasExpansionStarted = 1;
+        hasExpansionStarted = true;
     }
 
     /// @notice Emperor stops the expansion
     function stopExpansion() external onlyOwner {
-        hasExpansionStarted = 0;
+        hasExpansionStarted = false;
     }
 
     /// @notice Emperor starts the expansion
@@ -728,20 +737,15 @@ contract ThroneGelt is Ownable, ERC20Burnable {
 
     /// @dev Internal function to calculate Xenos Token Assimilation Bounds
     function _calcAssimilationBounds(ERC20 xenosToken) internal view returns (uint256 min, uint256 max) {
-        require(xenosToken.totalSupply() >= _maxAmount && xenosToken.decimals() == decimals(), "Incorrect token total supply");
+        require(xenosToken.totalSupply() >= airdropAmount && xenosToken.decimals() == decimals(), "Incorrect token total supply");
 
-        min = _commonerClaimableAmount * xenosToken.totalSupply() / _maxAmount * expansionRate;
-        max = _astartesClaimableAmount * xenosToken.totalSupply() / _maxAmount * expansionRate;
+        min = _commonerClaimableAmount * xenosToken.totalSupply() / airdropAmount * expansionRate;
+        max = _astartesClaimableAmount * xenosToken.totalSupply() / airdropAmount * expansionRate;
     }
 
     /// @dev Internal function that provides decimals for value
     function _withDecimals(uint256 value) internal view returns (uint256) {
-        return value * (10 ** decimals());
-    }
-
-    /// @dev Internal function to mint Throne Gelts upon claiming
-    function _claim(address userAddress, uint256 amountToMint) internal {
-        _mint(userAddress, amountToMint);
+        return value * (10**decimals());
     }
 
 }
