@@ -580,7 +580,7 @@ abstract contract Ownable is Context {
 }
 
 /// @custom:unaudited This contract has not been audited. Use at your own risk.
-contract ThroneGelt is Ownable, ERC20Burnable {
+contract ImperialThroneGelt is Ownable, ERC20Burnable {
     // Give out 40,000,000,000 Thrones for the expanded exchange
     uint256 constant DEFAULT_EXPANSION_LIMIT = 40000000000;
     uint256 constant DEFAULT_MAX_AMOUNT = 4000000000;
@@ -633,9 +633,13 @@ contract ThroneGelt is Ownable, ERC20Burnable {
     }
 
     /// @notice Claim Imperium Throne Gelts
+    /// first 1,000 accounts will receive 400,000
+    /// next 15,000 accounts will receive 66,666
+    /// next 40,000 accounts will receive 40,000
+    /// last 1,000 accounts will receive 10
     function claim() external {
         require(airdropClaimed[_msgSender()] == 0, "You have already claimed");
-        require(totalSupply() < airdropAmount, "Airdrop has ended");
+        require(ratlingsToClaim > 0, "Airdrop has ended");
         uint256 amount = 0;
         if (primarchsDiscovered[_msgSender()] != 0 && _primarchsToClaim > 0) {
             _primarchsToClaim -= 1;
@@ -662,21 +666,21 @@ contract ThroneGelt is Ownable, ERC20Burnable {
     /// @notice Claim from 40,000 to 400,000 of Imperium Throne Gelts.
     /// To do that you need to burn amount of custom BEP20Burnable token based on expansionRate
     /// BEP20Burnable token should be with 18 decimals
-    /// 25 percent of claimed amount will be granted to the Emperor and primarchs
+    /// up to 25 percent of claimed amount will be granted to the Emperor and primarchs(if they all are discovered)
     /// @param assimilationAmountAbsolute Assimilation amount without decimals, if 0 - defaults to 40,000
     function conquerXenosToken(address xenosTokenAddress, uint256 assimilationAmountAbsolute) external {
         require(xenosTokenAddress != address(0), "Cannot conquer 0 address");
-        require(hasExpansionStarted && totalSupply() >= airdropAmount, "Expansion is not active");
+        require(hasExpansionStarted && ratlingsToClaim == 0, "Expansion is not active");
 
         uint256 assimilationAmount = _withDecimals(assimilationAmountAbsolute);
         ERC20Burnable xenosToken = ERC20Burnable(xenosTokenAddress);
         (uint256 min, uint256 max) = _calcAssimilationBounds(xenosToken);
 
-        require(assimilationAmount >= min && assimilationAmount <= max, "Incorrect token amount");
+        require(assimilationAmount >= min && assimilationAmount <= max, "Incorrect assimilation amount");
 
         uint256 anticipatedAmount = airdropAmount * assimilationAmount / _calcXenosTokenSupply(xenosToken) / expansionRate;
 
-        require((totalSupply() + anticipatedAmount) <= (airdropAmount + expansionLimit), "assimilationAmountAbsolute is too hight");
+        require((totalSupply() + anticipatedAmount) <= (airdropAmount + expansionLimit), "Assimilation amount is too hight");
 
         uint256 emperorShare = anticipatedAmount / 25;
         uint256 primarchShare = anticipatedAmount / 100;
@@ -691,15 +695,20 @@ contract ThroneGelt is Ownable, ERC20Burnable {
         xenosAssimilated[xenosTokenAddress] = xenosAssimilated[xenosTokenAddress] + assimilationAmount;
 
         _mint(emperorAddress, emperorShare);
+
+        uint256 sharedPortion = 4;
         for (uint256 i = 0; i < primarchsClaimed.length; i++) {
             if (primarchsClaimed[i] != address(0)) {
+                sharedPortion += i == 19 ? 2 : 1;
                 _mint(
                     primarchsClaimed[i],
                     i == 19 ? primarchShare * 2 : primarchShare
                 );
             }
         }
-        _mint(_msgSender(), anticipatedAmount - 25 * primarchShare);
+
+        uint256 amountToMint = anticipatedAmount - sharedPortion * primarchShare;
+        _mint(_msgSender(), amountToMint);
     }
 
     /// @notice Calculates assimilationAmountAbsolute bounds without decimals to be used in conquerXenosToken method
@@ -747,7 +756,7 @@ contract ThroneGelt is Ownable, ERC20Burnable {
     }
 
     /// @dev Internal function to calculate Xenos Token Assimilation Bounds
-    function _calcAssimilationBounds(ERC20 xenosToken) internal view returns (uint256 min, uint256 max) {
+    function _calcAssimilationBounds(ERC20 xenosToken) private view returns (uint256 min, uint256 max) {
         require(xenosToken.decimals() == decimals(), "Incorrect token total supply");
         uint256 xenosTokenSupply = _calcXenosTokenSupply(xenosToken);
         min = _commonerClaimableAmount * xenosTokenSupply / airdropAmount * expansionRate;
@@ -755,26 +764,19 @@ contract ThroneGelt is Ownable, ERC20Burnable {
     }
 
     /// @dev Internal function that provides decimals for value
-    function _withDecimals(uint256 value) internal view returns (uint256) {
+    function _withDecimals(uint256 value) private view returns (uint256) {
         return value * (10**decimals());
     }
 
     /// @dev Internal function that provides value without decomals
-    function _withoutDecimals(uint256 value) internal view returns (uint256) {
+    function _withoutDecimals(uint256 value) private view returns (uint256) {
         return value / (10**decimals());
     }
 
     /// @dev Internal function that provides value without decomals
-    function _calcXenosTokenSupply(ERC20 xenosToken) internal view returns (uint256) {
+    function _calcXenosTokenSupply(ERC20 xenosToken) private view returns (uint256) {
         return xenosToken.totalSupply() < airdropAmount ? airdropAmount : xenosToken.totalSupply();
     }
 
 }
 
-contract TestXenos is Ownable, ERC20Burnable {
-
-
-    constructor() Ownable() ERC20("TestXenos", "TX") {
-        _mint(_msgSender(), 40000000 * (10 ** decimals()));
-    }
-}
