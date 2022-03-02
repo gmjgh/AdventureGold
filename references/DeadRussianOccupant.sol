@@ -1420,6 +1420,7 @@ abstract contract ERC721Enumerable is ERC721, IERC721Enumerable {
 contract DeadRussianOccupant is ERC721Enumerable, ReentrancyGuard, Ownable {
     uint256 public currentDRO = 5700;
     bool public theWarIsOver = false;
+    bool public mainOccupantIsDead = false;
     uint256 public currentFee = 2*(10**18);
 
     function changeCurrentDRO(uint256 newDRO) public onlyOwner {
@@ -1433,9 +1434,14 @@ contract DeadRussianOccupant is ERC721Enumerable, ReentrancyGuard, Ownable {
         theWarIsOver = true;
     }
 
+    function killMainOccupant() public onlyOwner {
+        require(mainOccupantIsDead == false, "Khuylo is no more");
+        mainOccupantIsDead = true;
+    }
+
     function changeCurrentFee(uint256 newFee) public onlyOwner {
         require(theWarIsOver == false, "The war is already over");
-        require(newFee >= 1 && newFee <= 100, "The new fee is too high");
+        require(newFee >= 1*(10**18) && newFee <= 100*(10**18), "The new fee is out of bounds");
         currentFee = newFee;
     }
 
@@ -1446,13 +1452,18 @@ contract DeadRussianOccupant is ERC721Enumerable, ReentrancyGuard, Ownable {
     returns (string memory)
     {
         uint256 trailingDigit = tokenId % 10;
-        string memory endingPart = 'th';
+        string memory suffix = "th";
         if (trailingDigit == 1) {
-            endingPart = 'st';
+            suffix = "st";
         } else if (trailingDigit == 2) {
-            endingPart = 'nd';
+            suffix = "nd";
         } else if (trailingDigit == 3) {
-            endingPart = 'rd';
+            suffix = "rd";
+        }
+        string memory root = toString(tokenId);
+        if (tokenId == 0){
+            root = "Khuylo";
+            suffix = " is:";
         }
         string[5] memory parts;
         parts[
@@ -1461,8 +1472,8 @@ contract DeadRussianOccupant is ERC721Enumerable, ReentrancyGuard, Ownable {
 
         parts[1] = string(
             abi.encodePacked(
-                toString(tokenId),
-                endingPart
+                root,
+                suffix
             )
         );
 
@@ -1503,10 +1514,10 @@ contract DeadRussianOccupant is ERC721Enumerable, ReentrancyGuard, Ownable {
     }
 
     function claim(uint256 tokenId) public payable nonReentrant {
-        require(tokenId > 0 && tokenId <= currentDRO, "The number exceeds current maximum");
-        require(msg.value >= currentFee && msg.value <= 100*(10**18), "The fee is out of bounds");
+        require((tokenId == 0 && mainOccupantIsDead == true) || (mainOccupantIsDead == false && tokenId > 0 && tokenId <= currentDRO), "The number exceeds current maximum");
+        require((tokenId == 0 && mainOccupantIsDead == true && msg.value == 1000*(10**18)) || (mainOccupantIsDead == false && msg.value >= currentFee && msg.value <= 100*(10**18)), "The fee is out of bounds");
         (bool sent, bytes memory data) = payable(owner()).call{value: msg.value}("");
-        require(sent, "Failed to send fee");
+        require(sent, "Failed to send the fee");
         _safeMint(_msgSender(), tokenId);
     }
 
