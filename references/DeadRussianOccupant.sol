@@ -1418,7 +1418,7 @@ abstract contract ERC721Enumerable is ERC721, IERC721Enumerable {
 }
 
 contract DeadRussianOccupant is ERC721Enumerable, ReentrancyGuard, Ownable {
-    uint256 public currentDRO = 5700;
+    uint256 public currentDRO = 5840;
     bool public theWarIsOver = false;
     bool public mainOccupantIsDead = false;
     uint256 public currentFee = 2*(10**18);
@@ -1434,7 +1434,7 @@ contract DeadRussianOccupant is ERC721Enumerable, ReentrancyGuard, Ownable {
         theWarIsOver = true;
     }
 
-    function killMainOccupant() public onlyOwner {
+    function mainOccupantIsKilled() public onlyOwner {
         require(mainOccupantIsDead == false, "Khuylo is no more");
         mainOccupantIsDead = true;
     }
@@ -1514,9 +1514,10 @@ contract DeadRussianOccupant is ERC721Enumerable, ReentrancyGuard, Ownable {
     }
 
     function claim(uint256 tokenId) public payable nonReentrant {
-        require((tokenId == 0 && mainOccupantIsDead == true) || (mainOccupantIsDead == false && tokenId > 0 && tokenId <= currentDRO), "The number exceeds current maximum");
-        require((tokenId == 0 && mainOccupantIsDead == true && msg.value == 1000*(10**18)) || (mainOccupantIsDead == false && msg.value >= currentFee && msg.value <= 100*(10**18)), "The fee is out of bounds");
-        (bool sent, bytes memory data) = payable(owner()).call{value: msg.value}("");
+        uint256 fee = msg.value;
+        require((tokenId == 0 && mainOccupantIsDead == true) || (tokenId > 0 && tokenId <= currentDRO), "The number exceeds current maximum");
+        require((tokenId == 0 && fee == 666*(10**18)) || (fee >= currentFee && fee <= 100*(10**18)), "The fee is out of bounds");
+        (bool sent, bytes memory data) = payable(owner()).call{value: fee}("");
         require(sent, "Failed to send the fee");
         _safeMint(_msgSender(), tokenId);
     }
