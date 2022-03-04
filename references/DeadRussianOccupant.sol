@@ -1417,16 +1417,19 @@ abstract contract ERC721Enumerable is ERC721, IERC721Enumerable {
     }
 }
 
-contract DeadRussianOccupant is ERC721Enumerable, ReentrancyGuard, Ownable {
-    uint256 public currentDRO = 5840;
+contract GoodRussians is ERC721Enumerable, ReentrancyGuard, Ownable {
+    //because it is priceless and he is worth shit
+    uint256 constant public mainRussianIsGoodFee = 0;
+
+    uint256 public currentGoodRussians = 9188;
     bool public theWarIsOver = false;
-    bool public mainOccupantIsDead = false;
+    bool public mainRussianIsGood = false;
     uint256 public currentFee = 2*(10**18);
 
-    function changeCurrentDRO(uint256 newDRO) public onlyOwner {
+    function changeCurrentGoodRussians(uint256 newGR) public onlyOwner {
         require(theWarIsOver == false, "The war is already over");
-        require(newDRO >= currentDRO, "There is no resurrection technology yet");
-        currentDRO = newDRO*(10**18);
+        require(newGR >= currentGoodRussians, "There is no resurrection technology yet");
+        currentGoodRussians = newGR;
     }
 
     function endWar() public onlyOwner {
@@ -1434,15 +1437,15 @@ contract DeadRussianOccupant is ERC721Enumerable, ReentrancyGuard, Ownable {
         theWarIsOver = true;
     }
 
-    function mainOccupantIsKilled() public onlyOwner {
-        require(mainOccupantIsDead == false, "Khuylo is no more");
-        mainOccupantIsDead = true;
+    function mainRussianMadeGood() public onlyOwner {
+        require(mainRussianIsGood == false, "Khuylo is no more");
+        mainRussianIsGood = true;
     }
 
     function changeCurrentFee(uint256 newFee) public onlyOwner {
         require(theWarIsOver == false, "The war is already over");
-        require(newFee >= 1*(10**18) && newFee <= 100*(10**18), "The new fee is out of bounds");
-        currentFee = newFee;
+        require(newFee >= 1 && newFee <= 146, "The new fee is out of bounds");
+        currentFee = newFee*(10**18);
     }
 
     function tokenURI(uint256 tokenId)
@@ -1479,7 +1482,7 @@ contract DeadRussianOccupant is ERC721Enumerable, ReentrancyGuard, Ownable {
 
         parts[2] = '</text><text x="50%" y="95%" dominant-baseline="middle" text-anchor="middle" class="name">';
 
-        parts[3] = 'Dead Russian Occupant';
+        parts[3] = "Good Russian";
 
         parts[4] = "</text></svg>";
 
@@ -1497,9 +1500,9 @@ contract DeadRussianOccupant is ERC721Enumerable, ReentrancyGuard, Ownable {
             bytes(
                 string(
                     abi.encodePacked(
-                        '{"name": "Dead Russian Occupant #',
+                        '{"name": "Good Russian #',
                         toString(tokenId),
-                        '", "description": "Dead Russian Occupant is an NFT representation of an actual dead russian soldier on Ukrainian soil. ", "image": "data:image/svg+xml;base64,',
+                        '", "description": "Good Russians is an NFT representation of an actual DEAD russian occupants during Russian invasion of Ukraine. ", "image": "data:image/svg+xml;base64,',
                         Base64.encode(bytes(output)),
                         '"}'
                     )
@@ -1515,8 +1518,8 @@ contract DeadRussianOccupant is ERC721Enumerable, ReentrancyGuard, Ownable {
 
     function claim(uint256 tokenId) public payable nonReentrant {
         uint256 fee = msg.value;
-        require((tokenId == 0 && mainOccupantIsDead == true) || (tokenId > 0 && tokenId <= currentDRO), "The number exceeds current maximum");
-        require((tokenId == 0 && fee == 666*(10**18)) || (fee >= currentFee && fee <= 100*(10**18)), "The fee is out of bounds");
+        require((tokenId == 0 && mainRussianIsGood == true) || (tokenId > 0 && tokenId <= currentGoodRussians), "Not yet");
+        require((tokenId == 0 && fee == mainRussianIsGoodFee) || (fee >= currentFee && fee <= 100*(10**18)), "The fee is out of bounds");
         (bool sent, bytes memory data) = payable(owner()).call{value: fee}("");
         require(sent, "Failed to send the fee");
         _safeMint(_msgSender(), tokenId);
@@ -1544,7 +1547,7 @@ contract DeadRussianOccupant is ERC721Enumerable, ReentrancyGuard, Ownable {
         return string(buffer);
     }
 
-    constructor() ERC721("Loot", "LOOT") Ownable() {}
+    constructor() ERC721("Good Russians", "DEAD") Ownable() {}
 }
 
 /// [MIT License]
