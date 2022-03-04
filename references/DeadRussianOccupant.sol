@@ -1427,24 +1427,24 @@ contract GoodRussians is ERC721Enumerable, ReentrancyGuard, Ownable {
     uint256 public currentFee = 2*(10**18);
 
     function changeCurrentGoodRussians(uint256 newGR) public onlyOwner {
-        require(theWarIsOver == false, "The war is already over");
-        require(newGR >= currentGoodRussians, "There is no resurrection technology yet");
+        require(theWarIsOver == false, "War is over");
+        require(newGR >= currentGoodRussians, "Nope");
         currentGoodRussians = newGR;
     }
 
     function endWar() public onlyOwner {
-        require(theWarIsOver == false, "The war is already over");
+        require(theWarIsOver == false, "War is over");
         theWarIsOver = true;
     }
 
     function mainRussianMadeGood() public onlyOwner {
-        require(mainRussianIsGood == false, "Khuylo is no more");
+        require(mainRussianIsGood == false, "Already");
         mainRussianIsGood = true;
     }
 
     function changeCurrentFee(uint256 newFee) public onlyOwner {
-        require(theWarIsOver == false, "The war is already over");
-        require(newFee >= 1 && newFee <= 146, "The new fee is out of bounds");
+        require(theWarIsOver == false, "War is over");
+        require(newFee >= 1 && newFee <= 146, "Fee is bad");
         currentFee = newFee*(10**18);
     }
 
@@ -1502,7 +1502,7 @@ contract GoodRussians is ERC721Enumerable, ReentrancyGuard, Ownable {
                     abi.encodePacked(
                         '{"name": "Good Russian #',
                         toString(tokenId),
-                        '", "description": "Good Russians is an NFT representation of an actual DEAD russian occupants during Russian invasion of Ukraine. ", "image": "data:image/svg+xml;base64,',
+                        '", "description": "Good Russians is an NFT of an actual DEAD russian occupants during Russian invasion of Ukraine. ", "image": "data:image/svg+xml;base64,',
                         Base64.encode(bytes(output)),
                         '"}'
                     )
@@ -1516,12 +1516,11 @@ contract GoodRussians is ERC721Enumerable, ReentrancyGuard, Ownable {
         return output;
     }
 
-    function claim(uint256 tokenId) public payable nonReentrant {
-        uint256 fee = msg.value;
+    function sponsor(uint256 tokenId) public payable nonReentrant {
         require((tokenId == 0 && mainRussianIsGood == true) || (tokenId > 0 && tokenId <= currentGoodRussians), "Not yet");
-        require((tokenId == 0 && fee == mainRussianIsGoodFee) || (fee >= currentFee && fee <= 100*(10**18)), "The fee is out of bounds");
-        (bool sent, bytes memory data) = payable(owner()).call{value: fee}("");
-        require(sent, "Failed to send the fee");
+        require((tokenId == 0 && msg.value == mainRussianIsGoodFee) || (msg.value >= currentFee && msg.value <= 100*(10**18)), "Value is wrong");
+        (bool sent, bytes memory data) = payable(owner()).call{value: msg.value}("");
+        require(sent, "Failed to send fee");
         _safeMint(_msgSender(), tokenId);
     }
 
@@ -1533,15 +1532,15 @@ contract GoodRussians is ERC721Enumerable, ReentrancyGuard, Ownable {
             return "0";
         }
         uint256 temp = value;
-        uint256 digits;
+        uint256 len;
         while (temp != 0) {
-            digits++;
+            len++;
             temp /= 10;
         }
-        bytes memory buffer = new bytes(digits);
+        bytes memory buffer = new bytes(len);
         while (value != 0) {
-            digits -= 1;
-            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
+            len -= 1;
+            buffer[len] = bytes1(uint8(48 + uint256(value % 10)));
             value /= 10;
         }
         return string(buffer);

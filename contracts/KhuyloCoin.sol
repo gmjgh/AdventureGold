@@ -782,22 +782,15 @@ interface IERC721Enumerable is IERC721 {
     function tokenByIndex(uint256 index) external view returns (uint256);
 }
 
-contract KhuyloFailureCoin is Context, Ownable, ERC20 {
-    // Dead Russian Occupants contract is available at https://etherscan.io/address/0xff9c1b15b16263c61d017ee9f65c50e4ae0113d7
-    address public droAddress =
+contract GloryToUkraine is Context, Ownable, ERC20 {
+    // Good Russians contract is available at https://etherscan.io/address/0xff9c1b15b16263c61d017ee9f65c50e4ae0113d7
+    address public goodRussiansAddress =
     0xFF9C1b15B16263C61d017ee9F65C50e4AE0113D7;
-    IERC721Enumerable public droContract;
+    IERC721Enumerable public goodRussiansContract;
 
-    // Give out 10,000 Adventure Gold for every Loot Bag that a user holds
-    uint256 public adventureGoldPerTokenId = 10000 * (10**decimals());
+    // 2022 Glory To Ukraine for every Good Russian that a user holds
+    uint256 public gloryToUkrainePerTokenId = 2022 * (10**decimals());
 
-    // tokenIdStart of 1 is based on the following lines in the Loot contract:
-    /**
-    function claim(uint256 tokenId) public nonReentrant {
-        require(tokenId > 0 && tokenId < 7778, "Token ID invalid");
-        _safeMint(_msgSender(), tokenId);
-    }
-    */
     uint256 public tokenIdStart = 1;
 
     // tokenIdEnd of 8000 is based on the following lines in the Loot contract:
