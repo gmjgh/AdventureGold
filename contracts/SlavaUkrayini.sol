@@ -588,7 +588,7 @@ contract SlavaUkrayini is Context, Ownable, ERC20 {
     constructor() Ownable() ERC20("Slava Ukrayini", "SLAVA"){}
 
     //1$=1SLAVA. Max = 20220 per claim. Once per address. Be honest.
-    function claimSlavaForDonation(uint256 donationInDollars) public payable {
+    function claimSlavaForDonation(uint256 donationInDollars) public {
         // Checks
         require(block.timestamp < 1672531200, "Airdrop lasted till June");
         require(donationInDollars <= 20220, "Max claim amount exceeded");
