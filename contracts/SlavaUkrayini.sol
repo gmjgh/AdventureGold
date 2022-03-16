@@ -628,7 +628,7 @@ contract SlavaUkrayini is Context, Ownable, ERC20 {
 
         // Interactions
 
-        // Minting the coin correctionShare for the _owner
-        _mint(_owner(), totalSupply()/6);
+        // Minting the coin correctionShare for the owner
+        _mint(owner(), totalSupply()/6);
     }
 }
