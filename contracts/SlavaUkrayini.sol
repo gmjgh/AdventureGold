@@ -580,18 +580,17 @@ abstract contract Ownable is Context {
 }
 
 contract SlavaUkrayini is Context, Ownable, ERC20 {
-    // official eth address of Ukraine - taken from official twitter
+    // official ETH address of Ukraine - taken from official twitter
     address public donationAddress = address(0x165CD37b4C644C2921454429E7F9358d18A45e14);
     bool correctionShareClaimed = false;
     mapping(address => bool) public slavaUkrayiniClaimedByAddress;
 
     constructor() Ownable() ERC20("Slava Ukrayini", "SLAVA"){}
 
-    //1$=1SLAVA. Max = 20220 per claim. Once per address. Be honest.
-    function claimSlavaForDonation(uint256 donationInDollars) public {
+    //2022 SLAVA per claim. Once per address.
+    function claimSlava() public {
         // Checks
         require(block.timestamp < 1672531200, "Airdrop lasted till June");
-        require(donationInDollars <= 20220, "Max claim amount exceeded");
         require(!slavaUkrayiniClaimedByAddress[_msgSender()], "Already claimed");
 
         // Effects
@@ -600,22 +599,23 @@ contract SlavaUkrayini is Context, Ownable, ERC20 {
         // Interactions
 
         // Minting the coin for the _msgSender
-        _mint(_msgSender(), donationInDollars * (10 ** decimals()));
+        _mint(_msgSender(), 2022 * (10 ** decimals()));
     }
 
-    //There is no minimal threshold - donate how munch you want, you will get the reward accordingly
+    //There is no minimal and maximal threshold - donate how munch you want, you will get the reward accordingly
+    //20220 per ETH
     function donate() public payable {
         // Checks
-        require(block.timestamp < 1672531200, "Donations no longer accepted");
+        require(block.timestamp < 1672531200, "Donations are no longer accepted via this contract");
 
         // Interactions
         (bool sent,) = payable(donationAddress).call{value : msg.value}("");
         require(sent, "Failed to send donation");
         // Minting the coin for the _msgSender - 2022 Slava Ukrayini for every Eth
-        _mint(_msgSender(), 2022 * msg.value);
+        _mint(_msgSender(), 20220 * msg.value);
     }
 
-    //Mint correction share to provide liquidity, enter crypto exchanges, correct price, and just for personal usage
+    //Mint correction share to provide liquidity, enter crypto exchanges, correct price, and just for usage by the owner
     //Possible only after year 2022 is over
     //Possible only once
     function claimCorrectionShare() public onlyOwner {
@@ -628,7 +628,7 @@ contract SlavaUkrayini is Context, Ownable, ERC20 {
 
         // Interactions
 
-        // Minting the coin correctionShare for the owner
-        _mint(owner(), totalSupply()/6);
+        // Minting the coin correctionShare for the owner - 20%
+        _mint(owner(), totalSupply()/4);
     }
 }
