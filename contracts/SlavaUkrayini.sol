@@ -582,8 +582,8 @@ abstract contract Ownable is Context {
 contract SUTest1 is Context, Ownable, ERC20 {
     // official ETH address of Ukraine - taken from official twitter
     address public constant donationAddress = address(0x165CD37b4C644C2921454429E7F9358d18A45e14);
-    //46'000'000 SLAVA is minted on contract creation to the @donationAdress ^
-    uint256 public constant initialUkrainsShare = 46000000*(10**18);
+    //46'000'000 SLAVA is minted on contract creation to the {donationAdress} ^
+    uint256 public constant initialUkrainsShare = 46000000 * (10 ** 18);
     //29.06.2022 00:00:00 - airdrop end
     uint256 public constant airdropEnd = 1656460800;
     //25.08.2022 00:00:00 - pause end
@@ -603,7 +603,7 @@ contract SUTest1 is Context, Ownable, ERC20 {
     //2022 SLAVA per claim. Once per address.
     function claimSlava() public {
         // Checks
-        require(block.timestamp < airdropEnd, "Airdrop lasted till June 29th");
+        require(block.timestamp < airdropEnd, "Airdrop lasted till after June 28th");
         require(!slavaUkrayiniClaimedByAddress[_msgSender()], "Already claimed");
 
         // Effects
@@ -619,7 +619,7 @@ contract SUTest1 is Context, Ownable, ERC20 {
     //20220 per ETH
     function donate() public payable {
         // Checks
-        require(block.timestamp < donationEnd, "Donations lasted till November 22th");
+        require(block.timestamp < donationEnd, "Donations lasted till after November 21th");
 
         // Interactions
         (bool sent,) = payable(donationAddress).call{value : msg.value}("");
@@ -642,7 +642,7 @@ contract SUTest1 is Context, Ownable, ERC20 {
         // Interactions
 
         // Minting the coin for the owner ~ 6%
-        _mint(owner(), totalSupply()/16);
+        _mint(owner(), totalSupply() / 16);
     }
 
     //Mint Ukraine share for
@@ -659,7 +659,7 @@ contract SUTest1 is Context, Ownable, ERC20 {
         // Interactions
 
         // Minting the coin for the Ukraine ~ 20%
-        _mint(donationAddress, totalSupply()/4);
+        _mint(donationAddress, (totalSupply() - initialUkrainsShare) / 4);
     }
 
     //pause transactions till after 24.08.2022
