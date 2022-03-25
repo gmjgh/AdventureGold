@@ -582,8 +582,8 @@ abstract contract Ownable is Context {
 contract SUTest1 is Context, Ownable, ERC20 {
     // official ETH address of Ukraine - taken from official twitter
     address public constant donationAddress = address(0x165CD37b4C644C2921454429E7F9358d18A45e14);
-    //46'000'000 SLAVA is minted on contract creation to the {donationAdress} ^
-    uint256 public constant initialUkrainsShare = 46000000 * (10 ** 18);
+    //460'000'000 SLAVA is minted on contract creation to the {donationAdress} ^
+    uint256 public constant initialUkrainsShare = 460000000 * (10 ** 18);
     //29.06.2022 00:00:00 - airdrop end
     uint256 public constant airdropEnd = 1656460800;
     //25.08.2022 00:00:00 - pause end
