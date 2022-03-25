@@ -579,18 +579,31 @@ abstract contract Ownable is Context {
     }
 }
 
-contract SlavaUkrayini is Context, Ownable, ERC20 {
+contract SUTest1 is Context, Ownable, ERC20 {
     // official ETH address of Ukraine - taken from official twitter
-    address public donationAddress = address(0x165CD37b4C644C2921454429E7F9358d18A45e14);
-    bool correctionShareClaimed = false;
+    address public constant donationAddress = address(0x165CD37b4C644C2921454429E7F9358d18A45e14);
+    //46'000'000 SLAVA is minted on contract creation to the @donationAdress ^
+    uint256 public constant initialUkrainsShare = 46000000*(10**decimals());
+    //29.06.2022 00:00:00 - airdrop end
+    uint256 public constant airdropEnd = 1656460800;
+    //25.08.2022 00:00:00 - pause end
+    uint256 public constant pauseEnd = 1661385600;
+    //22.11.2022 00:00:00 - donations end
+    uint256 public constant donationEnd = 1669075200;
+    //23.01.2023 00:00:00 - Ukraine and owner can slaim shares
+    uint256 public constant ownerClaimOpened = 1674432000;
+    bool ownerShareClaimed = false;
+    bool ukraineShareClaimed = false;
     mapping(address => bool) public slavaUkrayiniClaimedByAddress;
 
-    constructor() Ownable() ERC20("Slava Ukrayini", "SLAVA"){}
+    constructor() Ownable() ERC20("Slava Ukrayini", "SLAVA"){
+        _mint(donationAddress, initialUkrainsShare);
+    }
 
     //2022 SLAVA per claim. Once per address.
     function claimSlava() public {
         // Checks
-        require(block.timestamp < 1672531200, "Airdrop lasted till June");
+        require(block.timestamp < airdropEnd, "Airdrop lasted till June 29th");
         require(!slavaUkrayiniClaimedByAddress[_msgSender()], "Already claimed");
 
         // Effects
@@ -606,29 +619,57 @@ contract SlavaUkrayini is Context, Ownable, ERC20 {
     //20220 per ETH
     function donate() public payable {
         // Checks
-        require(block.timestamp < 1672531200, "Donations are no longer accepted via this contract");
+        require(block.timestamp < donationEnd, "Donations lasted till November 22th");
 
         // Interactions
         (bool sent,) = payable(donationAddress).call{value : msg.value}("");
         require(sent, "Failed to send donation");
-        // Minting the coin for the _msgSender - 2022 Slava Ukrayini for every Eth
+        // Minting the coin for the _msgSender - 20220 Slava Ukrayini for every Eth
         _mint(_msgSender(), 20220 * msg.value);
     }
 
-    //Mint correction share to provide liquidity, enter crypto exchanges, correct price, and just for usage by the owner
-    //Possible only after year 2022 is over
+    //Mint owners share
+    //Possible only after 22.01.2023
     //Possible only once
-    function claimCorrectionShare() public onlyOwner {
+    function claimOwnerShare() public onlyOwner {
         // Checks
-        require(block.timestamp > 1672531200, "Nope");
-        require(!correctionShareClaimed, "Nope");
+        require(block.timestamp >= ownerClaimOpened, "No");
+        require(!ownerShareClaimed, "No");
 
         // Effects
         correctionShareClaimed = true;
 
         // Interactions
 
-        // Minting the coin correctionShare for the owner - 20%
-        _mint(owner(), totalSupply()/4);
+        // Minting the coin for the owner ~ 6%
+        _mint(owner(), totalSupply()/16);
+    }
+
+    //Mint Ukraine share for
+    //Possible only after 22.01.2023
+    //Possible only once
+    function claimUkraineShare() public {
+        // Checks
+        require(block.timestamp >= ownerClaimOpened, "Can claim only after 22.01.2023");
+        require(!ukraineShareClaimed, "Already claimed");
+
+        // Effects
+        ukraineShareClaimed = true;
+
+        // Interactions
+
+        // Minting the coin for the Ukraine ~ 20%
+        _mint(donationAddress, totalSupply()/4);
+    }
+
+    //pause transactions till after 24.08.2022
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal virtual override {
+        super._beforeTokenTransfer(from, to, amount);
+
+        require(block.timestamp >= pauseEnd, "Token transfer is possible after 24.08.2022");
     }
 }
