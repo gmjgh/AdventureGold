@@ -582,22 +582,17 @@ abstract contract Ownable is Context {
 contract SUTest1 is Context, Ownable, ERC20 {
     // official ETH address of Ukraine - taken from official twitter
     address public constant donationAddress = address(0x165CD37b4C644C2921454429E7F9358d18A45e14);
-    //460'000'000 SLAVA is minted on contract creation to the {donationAdress} ^
-    uint256 public constant initialUkrainsShare = 460000000 * (10 ** 18);
     //29.06.2022 00:00:00 - airdrop end
     uint256 public constant airdropEnd = 1656460800;
-    //25.08.2022 00:00:00 - pause end
-    uint256 public constant pauseEnd = 1661385600;
     //22.11.2022 00:00:00 - donations end
     uint256 public constant donationEnd = 1669075200;
-    //23.01.2023 00:00:00 - Ukraine and owner can slaim shares
-    uint256 public constant ownerClaimOpened = 1674432000;
+    //01.01.2023 00:00:00 - Ukraine and owner can claim shares
+    uint256 public constant ownerClaimOpened = 1672531200;
     bool ownerShareClaimed = false;
     bool ukraineShareClaimed = false;
     mapping(address => bool) public slavaUkrayiniClaimedByAddress;
 
     constructor() Ownable() ERC20("Slava Ukrayini", "SLAVA"){
-        _mint(donationAddress, initialUkrainsShare);
     }
 
     //2022 SLAVA per claim. Once per address.
@@ -629,7 +624,7 @@ contract SUTest1 is Context, Ownable, ERC20 {
     }
 
     //Mint owners share
-    //Possible only after 22.01.2023
+    //Possible only after 01.01.2023
     //Possible only once
     function claimOwnerShare() public onlyOwner {
         // Checks
@@ -641,16 +636,16 @@ contract SUTest1 is Context, Ownable, ERC20 {
 
         // Interactions
 
-        // Minting the coin for the owner ~ 6%
+        // Minting the coin for the owner
         _mint(owner(), totalSupply() / 16);
     }
 
     //Mint Ukraine share for
-    //Possible only after 22.01.2023
+    //Possible only after 01.01.2023
     //Possible only once
     function claimUkraineShare() public {
         // Checks
-        require(block.timestamp >= ownerClaimOpened, "Can claim only after 22.01.2023");
+        require(block.timestamp >= ownerClaimOpened, "Can claim only after 01.01.2023");
         require(!ukraineShareClaimed, "Already claimed");
 
         // Effects
@@ -658,11 +653,11 @@ contract SUTest1 is Context, Ownable, ERC20 {
 
         // Interactions
 
-        // Minting the coin for the Ukraine ~ 20%
-        _mint(donationAddress, (totalSupply() - initialUkrainsShare) / 4);
+        // Minting the coin for the Ukraine
+        _mint(donationAddress, totalSupply()/ 4);
     }
 
-    //pause transactions till after 24.08.2022
+    //pause transactions till after 21.11.2022
     function _beforeTokenTransfer(
         address from,
         address to,
@@ -670,6 +665,6 @@ contract SUTest1 is Context, Ownable, ERC20 {
     ) internal virtual override {
         super._beforeTokenTransfer(from, to, amount);
 
-        require(block.timestamp >= pauseEnd, "Token transfer is possible after 24.08.2022");
+        require(block.timestamp >= donationEnd, "Token transfer is possible after donation end");
     }
 }
