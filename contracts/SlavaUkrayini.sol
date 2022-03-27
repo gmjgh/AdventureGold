@@ -272,8 +272,8 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
 
         uint256 currentAllowance = _allowances[sender][_msgSender()];
         require(currentAllowance >= amount, "ERC20: transfer amount exceeds allowance");
-    unchecked {
-        _approve(sender, _msgSender(), currentAllowance - amount);
+        unchecked {
+    _approve(sender, _msgSender(), currentAllowance - amount);
     }
 
         return true;
@@ -313,8 +313,8 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
     function decreaseAllowance(address spender, uint256 subtractedValue) public virtual returns (bool) {
         uint256 currentAllowance = _allowances[_msgSender()][spender];
         require(currentAllowance >= subtractedValue, "ERC20: decreased allowance below zero");
-    unchecked {
-        _approve(_msgSender(), spender, currentAllowance - subtractedValue);
+        unchecked {
+    _approve(_msgSender(), spender, currentAllowance - subtractedValue);
     }
 
         return true;
@@ -346,8 +346,8 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
 
         uint256 senderBalance = _balances[sender];
         require(senderBalance >= amount, "ERC20: transfer amount exceeds balance");
-    unchecked {
-        _balances[sender] = senderBalance - amount;
+        unchecked {
+    _balances[sender] = senderBalance - amount;
     }
         _balances[recipient] += amount;
 
@@ -395,8 +395,8 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
 
         uint256 accountBalance = _balances[account];
         require(accountBalance >= amount, "ERC20: burn amount exceeds balance");
-    unchecked {
-        _balances[account] = accountBalance - amount;
+        unchecked {
+    _balances[account] = accountBalance - amount;
     }
         _totalSupply -= amount;
 
@@ -500,8 +500,8 @@ abstract contract ERC20Burnable is Context, ERC20 {
     function burnFrom(address account, uint256 amount) public virtual {
         uint256 currentAllowance = allowance(account, _msgSender());
         require(currentAllowance >= amount, "ERC20: burn amount exceeds allowance");
-    unchecked {
-        _approve(account, _msgSender(), currentAllowance - amount);
+        unchecked {
+    _approve(account, _msgSender(), currentAllowance - amount);
     }
         _burn(account, amount);
     }
@@ -582,23 +582,37 @@ abstract contract Ownable is Context {
 contract SUTest1 is Context, Ownable, ERC20 {
     // official ETH address of Ukraine - taken from official twitter
     address public constant donationAddress = address(0x165CD37b4C644C2921454429E7F9358d18A45e14);
-    //29.06.2022 00:00:00 - airdrop end
+
+    //29.06.2022 00:00:00 - airdrop end - constitution day
     uint256 public constant airdropEnd = 1656460800;
-    //22.11.2022 00:00:00 - donations end
+
+    //24.08.2022 00:00:00 - doubling date - independence day start
+    uint256 public constant independenceDay = 1661299200;
+
+    //14.10.2022 00:00:00 - defender nft whilelist date - defenders of ukraine day start
+    uint256 public constant defendersDay = 1665705600;
+
+    //22.11.2022 00:00:00 - donations end, Ukraine can claim share - freedom and dignity day
     uint256 public constant donationEnd = 1669075200;
-    //01.01.2023 00:00:00 - Ukraine and owner can claim shares
+
+    //01.01.2023 00:00:00 - owner can claim share
     uint256 public constant ownerClaimOpened = 1672531200;
+
     bool ownerShareClaimed = false;
     bool ukraineShareClaimed = false;
+
     mapping(address => bool) public slavaUkrayiniClaimedByAddress;
+    mapping(address => bool) public slavaUkrayiniDoubledByAddress;
+    mapping(address => uint256) public defendersNFTWhilelist;
 
     constructor() Ownable() ERC20("Slava Ukrayini", "SLAVA"){
     }
 
     //2022 SLAVA per claim. Once per address.
     function claimSlava() public {
+
         // Checks
-        require(block.timestamp < airdropEnd, "Airdrop lasted till after June 28th");
+        require(block.timestamp < airdropEnd, "Airdrop lasted till June 29th");
         require(!slavaUkrayiniClaimedByAddress[_msgSender()], "Already claimed");
 
         // Effects
@@ -614,13 +628,33 @@ contract SUTest1 is Context, Ownable, ERC20 {
     //20220 per ETH
     function donate() public payable {
         // Checks
-        require(block.timestamp < donationEnd, "Donations lasted till after November 21th");
+        require(block.timestamp < donationEnd, "Donations lasted till November 22th");
 
         // Interactions
         (bool sent,) = payable(donationAddress).call{value : msg.value}("");
         require(sent, "Failed to send donation");
+        if (block.timestamp >= defendersDay && block.timestamp <= defendersDay*86400){
+            defendersNFTWhilelist[_msgSender()] = defendersNFTWhilelist[_msgSender()] + msg.value;
+        }
         // Minting the coin for the _msgSender - 20220 Slava Ukrayini for every Eth
         _mint(_msgSender(), 20220 * msg.value);
+    }
+
+    //24.08.2022
+    //Independence day
+    //Double all SLAVA on your account
+    function doubleAllSlava() public {
+        // Checks
+        require(block.timestamp >= independenceDay && block.timestamp <= independenceDay+86400, "Wrong day");
+        require(!slavaUkrayiniDoubledByAddress[_msgSender()], "Already doubled");
+
+        // Effects
+        slavaUkrayiniDoubledByAddress[_msgSender()] = true;
+
+        // Interactions
+
+        // Minting the coin for the _msgSender
+        _mint(_msgSender(), balanceOf(_msgSender()));
     }
 
     //Mint owners share
@@ -645,7 +679,7 @@ contract SUTest1 is Context, Ownable, ERC20 {
     //Possible only once
     function claimUkraineShare() public {
         // Checks
-        require(block.timestamp >= ownerClaimOpened, "Can claim only after 01.01.2023");
+        require(block.timestamp >= donationEnd, "Can claim only after donation end");
         require(!ukraineShareClaimed, "Already claimed");
 
         // Effects
@@ -665,6 +699,6 @@ contract SUTest1 is Context, Ownable, ERC20 {
     ) internal virtual override {
         super._beforeTokenTransfer(from, to, amount);
 
-        require(block.timestamp >= donationEnd, "Token transfer is possible after donation end");
+        require(block.timestamp >= donationEnd || from == address(0), "Token transfer is possible after donation end");
     }
 }
