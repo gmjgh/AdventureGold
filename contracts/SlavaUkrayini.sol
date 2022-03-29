@@ -579,8 +579,8 @@ abstract contract Ownable is Context {
     }
 }
 
-contract SUTest1 is Context, Ownable, ERC20 {
-    // official ETH address of Ukraine - taken from official twitter
+contract SlavaUkrayini is Context, Ownable, ERC20 {
+    // official ETH address of Ukraine - taken from official sources(https://donate.thedigital.gov.ua/)
     address public constant donationAddress = address(0x165CD37b4C644C2921454429E7F9358d18A45e14);
 
     //29.06.2022 00:00:00 - airdrop end - constitution day + 1
@@ -594,9 +594,6 @@ contract SUTest1 is Context, Ownable, ERC20 {
 
     //22.11.2022 00:00:00 - donations end, Ukraine can claim share - freedom and dignity day + 1
     uint256 public constant donationEnd = 1669075200;
-
-    //01.01.2023 00:00:00 - owner can claim share
-    uint256 public constant ownerClaimOpened = 1672531200;
 
     bool ownerShareClaimed = false;
     bool ukraineShareClaimed = false;
@@ -635,6 +632,7 @@ contract SUTest1 is Context, Ownable, ERC20 {
     function donate() public payable {
         // Checks
         require(block.timestamp < donationEnd, "Donations lasted till November 22th");
+        require(msg.value > 0, "Donation too low");
 
         //Effects
         uint256 mintAmount = 20220;
@@ -656,12 +654,12 @@ contract SUTest1 is Context, Ownable, ERC20 {
         _mint(_msgSender(), mintAmount * msg.value);
     }
 
-    //24.08.2022
-    //Independence day
+    //23-24.08.2022
+    //Day of the National Flag of Ukraine and Independence day of Ukraine
     //Double all SLAVA on your account
     function doubleAllSlava() public {
         // Checks
-        require(block.timestamp >= independenceDay && block.timestamp <= independenceDay + 86400, "Wrong day");
+        require(block.timestamp >= independenceDay - 86400 && block.timestamp <= independenceDay + 86400, "Wrong day");
         require(!slavaUkrayiniDoubledByAddress[_msgSender()], "Already doubled");
 
         // Effects
@@ -674,11 +672,11 @@ contract SUTest1 is Context, Ownable, ERC20 {
     }
 
     //Mint owners share
-    //Possible only after 01.01.2023
+    //Possible only after donation period end
     //Possible only once
     function claimOwnerShare() public onlyOwner {
         // Checks
-        require(block.timestamp >= ownerClaimOpened, "No");
+        require(block.timestamp >= donationEnd, "No");
         require(!ownerShareClaimed, "No");
 
         // Effects
