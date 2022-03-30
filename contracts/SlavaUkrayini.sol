@@ -579,8 +579,8 @@ abstract contract Ownable is Context {
     }
 }
 
-contract SlavaUkrayini is Context, Ownable, ERC20 {
-    // official ETH address of Ukraine - taken from official sources(https://donate.thedigital.gov.ua/)
+contract SlavaUkrayini is Ownable, ERC20Burnable {
+    // official ETH address of Ukraine - taken from official twitter
     address public constant donationAddress = address(0x165CD37b4C644C2921454429E7F9358d18A45e14);
 
     //29.06.2022 00:00:00 - airdrop end - constitution day + 1
@@ -611,7 +611,6 @@ contract SlavaUkrayini is Context, Ownable, ERC20 {
 
     //20220 -> 2022 SLAVA per claim. Once per address.
     function claimSlava() public {
-
         // Checks
         require(block.timestamp <= airdropEnd, "Airdrop lasted till June 29th");
         require(!slavaUkrayiniClaimedByAddress[_msgSender()], "Already claimed");
@@ -631,7 +630,7 @@ contract SlavaUkrayini is Context, Ownable, ERC20 {
     //20220 per ETH
     function donate() public payable {
         // Checks
-        require(block.timestamp < donationEnd, "Donations lasted till November 22th");
+        require(block.timestamp <= donationEnd, "Donations lasted till November 22th");
         require(msg.value > 0, "Donation too low");
 
         //Effects
