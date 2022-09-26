@@ -96,8 +96,8 @@ contract ERC20 {
     function burnFrom(address account, uint256 amount) external virtual {
         uint256 currentAllowance = allowance(account, _msgSender());
         require(currentAllowance >= amount, "ERC20: burn amount exceeds allowance");
-        unchecked {
-    _approve(account, _msgSender(), currentAllowance - amount);
+    unchecked {
+        _approve(account, _msgSender(), currentAllowance - amount);
     }
         _burn(account, amount);
     }
@@ -202,8 +202,8 @@ contract ERC20 {
 
         uint256 currentAllowance = _allowances[sender][_msgSender()];
         require(currentAllowance >= amount, "ERC20: transfer amount exceeds allowance");
-        unchecked {
-    _approve(sender, _msgSender(), currentAllowance - amount);
+    unchecked {
+        _approve(sender, _msgSender(), currentAllowance - amount);
     }
 
         return true;
@@ -243,8 +243,8 @@ contract ERC20 {
     function decreaseAllowance(address spender, uint256 subtractedValue) external virtual returns (bool) {
         uint256 currentAllowance = _allowances[_msgSender()][spender];
         require(currentAllowance >= subtractedValue, "ERC20: decreased allowance below zero");
-        unchecked {
-    _approve(_msgSender(), spender, currentAllowance - subtractedValue);
+    unchecked {
+        _approve(_msgSender(), spender, currentAllowance - subtractedValue);
     }
 
         return true;
@@ -320,8 +320,8 @@ contract ERC20 {
 
         uint256 senderBalance = _balances[sender];
         require(senderBalance >= amount, "ERC20: transfer amount exceeds balance");
-        unchecked {
-    _balances[sender] = senderBalance - amount;
+    unchecked {
+        _balances[sender] = senderBalance - amount;
     }
         _balances[recipient] += amount;
 
@@ -365,8 +365,8 @@ contract ERC20 {
 
         uint256 accountBalance = _balances[account];
         require(accountBalance >= amount, "ERC20: burn amount exceeds balance");
-        unchecked {
-    _balances[account] = accountBalance - amount;
+    unchecked {
+        _balances[account] = accountBalance - amount;
     }
         _totalSupply -= amount;
 
@@ -457,9 +457,10 @@ contract ProofOfMergeNFT {
     }
 }
 
-contract Proofofmergeum is ERC20 {
+contract Proofofmergeum is ERC20("Proofofmergeum", "OOF") {
 
-    uint256 public maxAmount = 51061200 * (10 ** 18);
+    uint256 public maxAmount = 53188750 * (10 ** 18);
+    mapping(address => uint256) public burnedBy;
 
     uint256 private _nftOwnersAmount = 42551000 * (10 ** 18);
     uint256 private _airDropAmount = 1000 * (10 ** 18);
@@ -467,31 +468,24 @@ contract Proofofmergeum is ERC20 {
     uint256 private _burnedAmount = 0;
     bool private _confirmedByAll = false;
     mapping(address => bool) private _confirmedOwnership;
-    ProofOfMergeNFT private _proofOfMergeContract;
+    // ProofOfMergeNFT private _proofOfMergeContract = ProofOfMergeNFT(0xF4Dd946D1406e215a87029db56C69e1Bcf3e1773);
+    ProofOfMergeNFT private _proofOfMergeContract = ProofOfMergeNFT(0xf8e81D47203A594245E36C48e151709F0C19fBe8);
     bool private _creatorShareDistributed = false;
 
-    constructor() ERC20("Proofofmergeum", "OOF"){
-        // _proofOfMergeContract = ProofOfMergeNFT(0xF4Dd946D1406e215a87029db56C69e1Bcf3e1773);
-        _proofOfMergeContract = ProofOfMergeNFT(0xf8e81D47203A594245E36C48e151709F0C19fBe8);
-    }
-
     function confirmOwnership() external {
-        require(_proofOfMergeContract.hasMinted(msg.sender), "Proof Of Merge NFT is absent in your wallet");
+        require(_hasMinted(msg.sender), "Proof Of Merge NFT is absent in your wallet");
         require(!_confirmedOwnership[msg.sender], "Already confirmed");
         _confirm(msg.sender);
     }
 
     function distributeCreatorShare() external onlyOwner {
         require(!_creatorShareDistributed, "Already distributed");
-        uint256 ownerShare = _nftOwnersAmount / 20;
-        //5% of the confirmable sum but in reality 4.16% of a total supply
-        uint256 creatorShare = ownerShare * 3;
-        //15% of the confirmable sum but in reality 12.5% of a total supply
 
         _creatorShareDistributed = true;
-        //15% minted to the creator of the Proof Of Merge
-        _mint(address(0xB3968C8E5280aDf1523d5947dFb7B83e8c80dd99), creatorShare);
-        _mint(owner(), ownerShare);
+        //20% minted to the creators of the Proof Of Merge and Proofofmergeum
+        _mint(address(0xB3968C8E5280aDf1523d5947dFb7B83e8c80dd99), 4255100 * (10 ** 18));
+        _mint(address(0x1f50dE40B826d5A25eeE9fA94fde764Be2b9EFFb), 4255100 * (10 ** 18));
+        _mint(owner(), 2127550 * (10 ** 18));
     }
 
     function totalSupply() public view override returns (uint256) {
@@ -516,10 +510,11 @@ contract Proofofmergeum is ERC20 {
         uint256 amount
     ) internal override {
         if (!_confirmedByAll) {
-            if (!_confirmedOwnership[from]) {
+            if (_hasMinted(from) && !_confirmedOwnership[from]) {
+                require(amount <= _airDropAmount, "Proofofmergeum: transfer amount exceeds balance");
                 _confirm(from);
             }
-            if (!_confirmedOwnership[to]) {
+            if (_hasMinted(to) && !_confirmedOwnership[to]) {
                 _confirm(to);
             }
         }
@@ -532,6 +527,7 @@ contract Proofofmergeum is ERC20 {
     ) internal override {
         if (to == address(0)) {
             _burnedAmount += amount;
+            burnedBy[from] += amount;
         }
     }
 
@@ -540,11 +536,9 @@ contract Proofofmergeum is ERC20 {
     }
 
     function _confirm(address account) internal {
-        if (_hasMinted(account)) {
-            _confirmedOwnership[account] = true;
-            _confirmedCount += 1;
-            _confirmedByAll = _confirmedCount == 42551;
-            _mint(account, _airDropAmount);
-        }
+        _confirmedOwnership[account] = true;
+        _confirmedCount += 1;
+        _confirmedByAll = _confirmedCount == 42551;
+        _mint(account, _airDropAmount);
     }
 }
